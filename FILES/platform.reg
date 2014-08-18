@@ -1,0 +1,364 @@
+;
+; Copyright (c) Microsoft Corporation.  All rights reserved.
+;
+;
+; Use of this sample source code is subject to the terms of the Microsoft
+; license agreement under which you licensed this sample source code. If
+; you did not accept the terms of the license agreement, you are not
+; authorized to use this sample source code. For the terms of the license,
+; please see the license agreement between you and Microsoft or, if applicable,
+; see the LICENSE.RTF on your install media or the root of your tools installation.
+; THE SAMPLE SOURCE CODE IS PROVIDED "AS IS", WITH NO WARRANTIES.
+;
+;-------------------------------------------------------------------------------
+
+
+#define DRIVERS_DIR         $(_PUBLICROOT)\common\oak\drivers
+#define PLATRIVERS_DIR      $(_TARGETPLATROOT)\src\drivers
+
+; -----------------------------------------------------------------------------
+; @CESYSGEN IF CE_MODULES_DISPLAY
+IF BSP_LPC32XX_DISPLAY
+[HKEY_LOCAL_MACHINE\Drivers\Display\LPC32XX\CONFIG]
+    "DisplayDll"="lpc32xx_lcd.dll"
+    "LCDPanelType"=dword:0
+    "UseIRAM"=dword:1
+
+[HKEY_LOCAL_MACHINE\System\GDI\Drivers]
+    "Display"="lpc32xx_lcd.dll"
+
+; GWES will pass this value to the LCD driver; the driver will open the
+; key to which it points to read its configuration.
+[HKEY_LOCAL_MACHINE\System\GDI\DisplayCandidates]
+    "Candidate10"="Drivers\\Display\\S3C2410\\CONFIG"
+
+IF BSP_LPC32XX_BACKLIGHT
+[HKEY_LOCAL_MACHINE\Drivers\BuiltIn\Backlight]
+    "DLL"="ms2_backlight.dll"
+    "Prefix"="BKL"
+    "Order"=dword:1
+    "Index"=dword:1
+    "IClass"="{A32942B7-920C-486b-B0E6-92A702A99B35}"
+
+; Backlight tab of Display control panel (timeouts in seconds)
+[HKEY_CURRENT_USER\ControlPanel\Backlight]
+    "BatteryTimeout"=dword:F	; 10 seconds
+    "BacklightOnTap"=dword:1
+    "ACTimeout"=dword:F1	; 250 seconds
+    "ACBacklightOnTap"=dword:1
+ENDIF BSP_LPC32XX_BACKLIGHT
+ENDIF BSP_LPC32XX_DISPLAY
+; @CESYSGEN ENDIF CE_MODULES_DISPLAY
+; -----------------------------------------------------------------------------
+; -----------------------------------------------------------------------------
+; @CESYSGEN IF CE_MODULES_KEYBD
+IF BSP_LPC32XX_KSCAN
+#if $(LOCALE)==0409
+#define keybd_driver "KbdLPC32XXUs.dll"
+
+; Report keypad HW present and enabled, with Enter and ESC keys
+; and alphanumeric keys.
+[HKEY_LOCAL_MACHINE\HARDWARE\DEVICEMAP\KEYBD]
+    "Status"=dword:0F
+
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Layouts\00000409]
+    "Layout File"="KbdLPC32XXUs.dll"
+    "Layout Text"="US"
+    "PS2_AT"="KbdLPC32XXUs.dll"
+    "Matrix"="KbdLPC32XXUs.dll"
+    "Layout Display Name"=multi_sz:"KbdLPC32XXUs"
+
+[HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Layouts\e0010409]
+    "Keyboard Layout"="00000409"
+
+;[HKEY_CURRENT_USER\Software\Microsoft\Shell]
+;    "HasKeyboard"=dword:0
+
+[HKEY_CURRENT_USER\ControlPanel\Volume]
+; Quiet key clicks
+    "Key"=dword:1
+
+; Set the default layout preloads
+; @BEGINASSOC LOCALE 0409
+[HKEY_CURRENT_USER\Keyboard Layout\Preload]
+    @="00000409"
+[HKEY_CURRENT_USER\Keyboard Layout\Preload\1]
+    @="00000409"
+; @ENDASSOC
+
+#else
+#define keybd_driver "kbdmouse.dll"
+#endif
+
+#include "$(DRIVERS_DIR)\keybd\keybd.reg"
+#include "$(DRIVERS_DIR)\keybd\LayMgr.reg"
+
+ENDIF BSP_LPC32XX_KSCAN
+; @CESYSGEN ENDIF CE_MODULES_KEYBD
+; -----------------------------------------------------------------------------
+; -----------------------------------------------------------------------------
+; @CESYSGEN IF CE_MODULES_POINTER
+IF BSP_LPC32XX_TOUCH
+[HKEY_LOCAL_MACHINE\HARDWARE\DEVICEMAP\TOUCH]
+    "DriverName"="lpc32xx_touch.dll"
+;    "Agent"="PAD1:"
+;LCD 070
+     ;"CalibrationData"="515,523 102,140 102,913 926,901 922,117"
+;LCD 080
+     ;"CalibrationData"="503,536 114,149 113,915 898,909 899,148"
+;LCD 35
+     ;"CalibrationData"="524,525 135,132 132,921 922,920 907,134"
+;LQ  080
+     ;"CalibrationData"="516,577 897,230 870,925 145,917 144,198"
+;LCD 43
+     "CalibrationData"="521,513 112,151 113,894 918,898 922,135"
+     
+    "Samplerate"=dword:0 ; 0 for 50Hz, 1 for 100Hz
+    "MaxCalError"="3"
+
+[HKEY_LOCAL_MACHINE\Drivers\BuiltIn\PAD]
+    "Order"=dword:32
+    "Dll"="tpagent.dll"
+    "Prefix"="PAD"
+    "index"=dword:1
+
+[HKEY_LOCAL_MACHINE\ControlPanel]
+    "InputConfig"=dword:2    ; 2 => touch screen
+ENDIF BSP_LPC32XX_TOUCH
+; @CESYSGEN ENDIF CE_MODULES_POINTER
+;-------------------------------------------------------------------------------
+;-------------------------------------------------------------------------------
+; @CESYSGEN IF CE_MODULES_DEVICE
+IF BSP_LPC32XX_I2C1
+[HKEY_LOCAL_MACHINE\Drivers\BuiltIn\I2C1_DRIVER]
+	"Prefix"="IIC"
+	"Dll"="lpc32xx_i2cdrv.dll"
+	"Order"=dword:0
+	"Index"=dword:0	
+ENDIF BSP_LPC32XX_I2C1
+IF BSP_LPC32XX_I2C2
+[HKEY_LOCAL_MACHINE\Drivers\BuiltIn\I2C2_DRIVER]
+	"Prefix"="IIC"
+	"Dll"="lpc32xx_i2cdrv.dll"
+	"Order"=dword:1
+	"Index"=dword:1	
+ENDIF BSP_LPC32XX_I2C2
+;-------------------------------------------------------------------------------
+;-------------------------------------------------------------------------------
+IF BSP_LPC32XX_SSP0
+[HKEY_LOCAL_MACHINE\Drivers\BuiltIn\SSP0_DRIVER]
+	"Prefix"="SSP"
+	"Dll"="lpc32xx_sspdrv.dll"
+	"Order"=dword:2
+	"Index"=dword:0	
+ENDIF BSP_LPC32XX_SSP0
+IF BSP_LPC32XX_SSP1
+[HKEY_LOCAL_MACHINE\Drivers\BuiltIn\SSP1_DRIVER]
+	"Prefix"="SSP"
+	"Dll"="lpc32xx_sspdrv.dll"
+	"Order"=dword:3
+	"Index"=dword:1	
+ENDIF BSP_LPC32XX_SSP1
+; @CESYSGEN ENDIF CE_MODULES_DEVICE
+
+;------------------------------------------------------------------------------
+; NDIS MAC controller
+;------------------------------------------------------------------------------
+IF IMGNOKITL
+	#include "$(_TARGETPLATROOT)\SRC\DRIVERS\NDIS\lpc3250_NDIS.reg"
+ENDIF IMGNOKITL
+
+;-------------------------------------------------------------------------------
+;-------------------------------------------------------------------------------
+; @CESYSGEN IF CE_MODULES_WAVEAPI
+IF BSP_LPC32XX_AUDIO
+[HKEY_LOCAL_MACHINE\Drivers\BuiltIn\WaveDev]
+   "Prefix"="WAV"
+   "Dll"="lpc32xx_wavedev.dll"
+   "Index"=dword:1
+   "Order"=dword:30
+   "Priority256"=dword:95
+
+[HKEY_LOCAL_MACHINE\Drivers\BuiltIn\WAPIMAN]
+    "Priority256"=dword:97
+ENDIF BSP_LPC32XX_AUDIO
+; @CESYSGEN ENDIF CE_MODULES_WAVEAPI
+;-------------------------------------------------------------------------------
+;-------------------------------------------------------------------------------
+; @CESYSGEN IF CE_MODULES_SDBUS
+IF BSP_LPC32XX_SDCARD
+[HKEY_LOCAL_MACHINE\Drivers\BuiltIn\SDHC]
+    "Order"=dword:20
+    "Dll"="lpc32xx_sdhc.dll"
+    "Prefix"="SHC"
+    "DataTimeOutClocks"=dword:0 ; Extra timeout
+;    "MaxClockFrequency"=dword:6C4B40 ; TBD
+    "MaxClockFrequency"=dword:17D7840 ; 25MHz
+    "CardDetectISTPriority"=dword:85
+    "DataIstPriority"=dword:33
+    "CmdIstPriority"=dword:32
+    "DMAIstPriority"=dword:60
+
+[HKEY_LOCAL_MACHINE\System\StorageManager\Profiles\SDMemory]
+    "Name"="SD Memory Card"
+    "Folder"="Storage Card"
+
+[HKEY_LOCAL_MACHINE\System\StorageManager\Profiles\MMC]
+    "Name"="MMC Card"
+    "Folder"="Storage Card"
+
+; SD Memory Storage class driver
+[HKEY_LOCAL_MACHINE\Drivers\SDCARD\ClientDrivers\Class\SDMemory_Class]
+   "Dll"="SDMemory.dll"
+   "Prefix"="DSK"
+   "BlockTransferSize"=dword:40  ; send no more than 64 blocks of data per bus transfer
+   "SingleBlockWrites"=dword:0  ; alternatively force the driver to use single block access
+   "IdleTimeout"=dword:7D0      ; 2000 milliseconds
+   ;"IdlePowerState"=dword:2     ; 0 == D0, 1 == D1, etc.
+   ;"DisablePowerManagement"=""  ; if value present, then disable (remove value to enable)
+   "Profile"="SDMemory"
+   "IClass"=multi_sz:"{A4E7EDDA-E575-4252-9D6B-4195D48BB865}",
+                     "{A32942B7-920C-486b-B0E6-92A702A99B35}"
+
+; MMC Storage Class Driver
+[HKEY_LOCAL_MACHINE\Drivers\SDCARD\ClientDrivers\Class\MMC_Class]
+   "Dll"="SDMemory.dll"
+   "Prefix"="DSK"
+   "BlockTransferSize"=dword:40  ; send no more than 64 blocks of data per bus transfer
+   "SingleBlockWrites"=dword:0  ; alternatively force the driver to use single block access
+   "IdleTimeout"=dword:7D0      ; 2000 milliseconds
+   ;"IdlePowerState"=dword:2     ; 0 == D0, 1 == D1, etc.
+   ;"DisablePowerManagement"=""  ; if value present, then disable (remove value to enable)
+   "Profile"="MMC"
+   "IClass"=multi_sz:"{A4E7EDDA-E575-4252-9D6B-4195D48BB865}",
+                     "{A32942B7-920C-486b-B0E6-92A702A99B35}"
+ENDIF BSP_LPC32XX_SDCARD
+; @CESYSGEN ENDIF CE_MODULES_SDBUS
+;-------------------------------------------------------------------------------
+;-------------------------------------------------------------------------------
+IF BSP_LPC32XX_FLASH
+; HIVE BOOT SECTION
+[HKEY_LOCAL_MACHINE\Drivers\BuiltIn\PFLASH]
+  "Prefix"="DSK"
+  "Dll"="phy3250_flash.dll"
+  "Order"=dword:1
+  "Profile"="PFLASH"
+  "IClass"="{A4E7EDDA-E575-4252-9D6B-4195D48BB865}"
+  "Build"="0000000"
+
+[HKEY_LOCAL_MACHINE\System\StorageManager\Profiles\PFLASH]
+  "DefaultFileSystem"="FATFS"
+  "PartitionDriver"=""
+  "Folder"="FLASH Storage"
+  "Name"="FLASH Storage"
+
+[HKEY_LOCAL_MACHINE\System\StorageManager\Profiles\PFLASH\FATFS]
+  "Flags"=dword:14
+;  "FormatFAT"=dword:1
+  "FormatTfat"=dword:1
+  "CheckForFormat"=dword:1
+
+[HKEY_LOCAL_MACHINE\System\StorageManager\Autoload\PFLASH]
+  "DriverPath"="Drivers\\BuiltIn\\PFLASH"
+  "LoadFlags"=dword:1
+  "Order"=dword:0
+  "MountAsRoot"=dword:1
+  "MountAsBootable"=dword:1
+  "BootPhase"=dword:1
+
+[HKEY_LOCAL_MACHINE\init\BootVars]
+  "SYSTEMHIVE"="FLASH Storage\\Documents and Settings\\system.hv"
+  "PROFILEDIR"="FLASH Storage\\Documents and Settings"
+  "Flags"=dword:3
+  "DefaultUser"="nxpuser"
+; END HIVE BOOT SECTION 
+ENDIF BSP_LPC32XX_FLASH
+;-------------------------------------------------------------------------------
+;-------------------------------------------------------------------------------
+; @CESYSGEN IF CE_MODULES_USBOTG
+IF BSP_LPC32XX_USBOTG
+[HKEY_LOCAL_MACHINE\Drivers\BuiltIn\UsbOtg]
+    "Dll"="lpc32xx_usbotg.dll"
+    "Prefix"="OTG"
+    "Order"=dword:10
+    "MemBase"=dword:40600000   ; UDC_BASE_U_VIRTUAL
+    "MemLen"=dword:1000        ; Needs at least 0xE04. Round up to 1 page.
+    "DynamicClientLoad"=dword:0
+    "DisableRoleSwitch"=dword:0
+    "InitialRoleMaster"=dword:1
+    "HCDPortNumberOnOTG"=dword:2
+    "BusIoctl"=dword:2a0048
+    "InterfaceType"=dword:0 ; Internal
+    "USBTrxMode"=dword:2 ; 3 wire
+    "IClass"=multi_sz:"{6F40791D-300E-44E4-BC38-E0E63CA8375C}=%b"
+
+; @CESYSGEN IF CE_MODULES_USBD
+IF BSP_LPC32XX_USBH
+[HKEY_LOCAL_MACHINE\Drivers\BuiltIn\UsbOtg\Hcd]
+    "InterfaceType"=dword:0     ; Internal
+    "Prefix"="HCD"
+    "Dll"="ohci2.dll"
+    "Index"=dword:1
+    "Order"=dword:1
+    "Irq"=dword:F
+    "SysIntr"=dword:10
+    "Priority"=dword:40
+    "BusNumber"=dword:0
+    "MemBase"=dword:31020000
+    "MemLen"=dword:100
+    "UseExistingSettings"=dword:0
+;   "Class"=dword:0c
+;   "SubClass"=dword:03
+   "ProgIF"=dword:10
+   "IsrDll"="giisr.dll"
+   "IsrHandler"="ISRHandler"
+    "HcdCapability"=dword:2
+ENDIF BSP_LPC32XX_USBH
+; @CESYSGEN ENDIF CE_MODULES_USBD
+
+; @CESYSGEN IF CE_MODULES_USBFN
+IF BSP_LPC32XX_USBFN
+[HKEY_LOCAL_MACHINE\Drivers\BuiltIn\UsbOtg\USBFN]
+    "Dll"="lpc32xx_usbfn.dll"
+    "InterfaceType"=dword:0     ; Internal
+    "Prefix"="UFN"
+    "Order"=dword:0
+    "Priority256"=dword:64
+    "MemBase"=dword:40600000   ; UDC_BASE_U_VIRTUAL
+    "MemLen"=dword:1000        ; Needs at least 0xE04. Round up to 1 page.
+    "Irq"=dword:0b
+    "Sysintr"=dword:1a
+    "BusIoctl"=dword:2a0048
+    "IClass"=multi_sz:"{E2BDC372-598F-4619-BC50-54B3F7848D35}=%b","{6F40791D-300E-44E4-BC38-E0E63CA8375C}=%b"
+ENDIF BSP_LPC32XX_USBFN
+; @CESYSGEN ENDIF CE_MODULES_USBFN
+ENDIF BSP_LPC32XX_USBOTG
+; @CESYSGEN ENDIF CE_MODULES_USBOTG
+
+; Welcome.exe: Disable tutorial and calibration pages
+; PAGE_TOUCHSCREEN (2), PAGE_STYLUS (4), PAGE_POPUPMENU (8), PAGE_TIMEZONE (0x10), PAGE_COMPLETE (0x20)
+[HKEY_LOCAL_MACHINE\Software\Microsoft\Welcome]
+    "Disable"=dword:ffffffed
+
+; Welcome.exe: Disable tutorial will be overwritten if security is not turned off by default.
+; This reg key turns the security off by default - when it is set to a nonzero value, querying device management policy SECPOLICY_LASS_PWD_REQUIRED will return FALSE.
+[HKEY_LOCAL_MACHINE\Security\Policies\Policies]
+    "00001023"=dword:1
+
+; This registry setting enables the Explorer's suspend menu button
+[HKEY_LOCAL_MACHINE\Explorer]
+    "Suspend"=dword:1
+    
+[HKEY_LOCAL_MACHINE\System\GDI\Rotation]
+    "Angle"=dword:5A
+
+;------------------------------------------------------------------------------
+; NDIS MAC controller
+;------------------------------------------------------------------------------
+IF BSP_LPC3250_NDIS
+IF IMGNOKITL
+	#include "$(_TARGETPLATROOT)\SRC\DRIVERS\NDIS\lpc3250_NDIS.reg"
+ENDIF IMGNOKITL
+ENDIF BSP_LPC3250_NDIS
+
+

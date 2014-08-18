@@ -1,0 +1,51 @@
+;
+; Copyright (c) Microsoft Corporation.  All rights reserved.
+;
+;
+; Use of this sample source code is subject to the terms of the Microsoft
+; license agreement under which you licensed this sample source code. If
+; you did not accept the terms of the license agreement, you are not
+; authorized to use this sample source code. For the terms of the license,
+; please see the license agreement between you and Microsoft or, if applicable,
+; see the LICENSE.RTF on your install media or the root of your tools installation.
+; THE SAMPLE SOURCE CODE IS PROVIDED "AS IS", WITH NO WARRANTIES.
+;
+;-------------------------------------------------------------------------------
+;
+; File: eboot.bib
+;
+; EBOOT requires the stage 1 boot loader (S1L) to setup memory prior to being
+; started. S1L setups up SDRAM and a basic MMU page table with cached and
+; uncached locations for SDRAM and IRAM. Code is executed from cached SDRAM,
+; while data is placed in uncached IRAM. For executing code and data when the
+; MMU is enabled, virtual and physical addresses are identical.
+;
+
+MEMORY
+;   Name       Start     Size      Type
+;   -------    --------  --------  ----
+    EBOOT      83FC0000  00040000  RAMIMAGE
+    VECTORSC   00000000  00000800  RESERVED
+	ARGS       00000800  00000800  RESERVED
+    RAMC       00001000  00023000  RAM
+    ETHDMAC    00024000  00010000  RESERVED
+    STACKC     00034000  00008000  RESERVED
+    MMUTABC    0003C000  00004000  RESERVED
+    IRAMUNC    08000000  00040000  RESERVED
+
+CONFIG
+    COMPRESSION=OFF
+    PROFILE=OFF
+    AUTOSIZE=OFF
+    KERNELFIXUPS=ON
+
+    ROMSTART=83FC0000
+    ROMWIDTH=32
+    ROMSIZE=40000
+
+    ROMOFFSET=0
+    
+MODULES
+; Name      Path                                                             Memory
+; --------  ---------------------------------------------------------------  ---------
+  nk.exe    $(_TARGETPLATROOT)\target\$(_TGTCPU)\$(WINCEDEBUG)\eboot.exe     EBOOT

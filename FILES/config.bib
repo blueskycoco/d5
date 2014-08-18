@@ -1,0 +1,56 @@
+; 
+; Copyright (c) Microsoft Corporation.  All rights reserved.
+;
+;
+; Use of this sample source code is subject to the terms of the Microsoft
+; license agreement under which you licensed this sample source code. If
+; you did not accept the terms of the license agreement, you are not
+; authorized to use this sample source code. For the terms of the license,
+; please see the license agreement between you and Microsoft or, if applicable,
+; see the LICENSE.RTF on your install media or the root of your tools installation.
+; THE SAMPLE SOURCE CODE IS PROVIDED "AS IS", WITH NO WARRANTIES.
+;
+;-------------------------------------------------------------------------------
+;
+; Note that for image update images this files is ignored with an exception
+; of variable FIXUPs.
+;
+
+MEMORY
+; See memory mapping in the addrtab_cfg.inc file
+;  Name                 Address     Size        Type
+	NK		80000000    03000000    RAMIMAGE
+	DATA		83000000    00D00000    RAM
+	DMA		83F00000    00100000    RESERVED
+	LCD		83D00000    00200000    RESERVED
+	EXT_DRAM        84000000    04000000    RESERVED
+	ARGS		90000800    00000800    RESERVED
+;-------------------------------------------------------------------------------
+
+CONFIG
+; @CESYSGEN IF !NK_NKNOCOMP
+   COMPRESSION=ON
+; @CESYSGEN ENDIF !NK_NKNOCOMP
+; @CESYSGEN IF NK_NKNOCOMP
+   COMPRESSION=OFF
+; @CESYSGEN ENDIF NK_NKNOCOMP
+
+; @CESYSGEN IF CE_MODULES_EXFAT
+    FSRAMPERCENT=0x0A0A0A0A
+; @CESYSGEN ENDIF CE_MODULES_EXFAT
+
+    AUTOSIZE=ON
+    KERNELFIXUPS=ON
+
+    ROMSTART=80000000
+    ROMWIDTH=32
+    ROMSIZE=8000000
+    ROMOFFSET=0
+
+IF IMGPROFILER   
+    PROFILE=ON
+ELSE
+    PROFILE=OFF
+ENDIF
+
+;-------------------------------------------------------------------------------

@@ -1,0 +1,43 @@
+!if 0
+Copyright (c) Microsoft Corporation.  All rights reserved.
+!endif
+!if 0
+Use of this sample source code is subject to the terms of the Microsoft
+license agreement under which you licensed this sample source code. If
+you did not accept the terms of the license agreement, you are not
+authorized to use this sample source code. For the terms of the license,
+please see the license agreement between you and Microsoft or, if applicable,
+see the LICENSE.RTF on your install media or the root of your tools installation.
+THE SAMPLE SOURCE CODE IS PROVIDED "AS IS", WITH NO WARRANTIES.
+!endif
+
+!IF "$(BSP_LPC32XX_SDCARD)" != "1"
+SKIPBUILD=1
+!ENDIF
+
+TARGETNAME=lpc32xx_sdhc
+TARGETTYPE=DYNLINK
+RELEASETYPE=PLATFORM
+
+SYNCHRONIZE_DRAIN=1
+
+DEFFILE=$(TARGETNAME).def
+DLLENTRY=_DllEntryCRTStartup
+
+TARGETLIBS= \
+    $(_COMMONOAKROOT)\lib\$(_CPUINDPATH)\ceddk.lib \
+    $(_COMMONSDKROOT)\lib\$(_CPUINDPATH)\coredll.lib \
+    $(_TARGETPLATROOT)\lib\$(_CPUDEPPATH)\dmadrv.lib
+
+SOURCELIBS= \
+     $(_COMMONOAKROOT)\lib\$(_CPUINDPATH)\sdcardlib.lib \
+     $(_COMMONOAKROOT)\lib\$(_CPUINDPATH)\sdhclib.lib \
+     $(_COMMONOAKROOT)\lib\$(_CPUINDPATH)\sdbus.lib
+
+INCLUDES=$(INCLUDES);../dma
+
+SOURCES= \
+    sdhwctrl.cpp \
+    sdhc_core.cpp \
+    SDHCMain.cpp
+WARNLEVEL=0

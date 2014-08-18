@@ -1,0 +1,59 @@
+!if 0
+Copyright (c) Microsoft Corporation.  All rights reserved.
+!endif
+!if 0
+Use of this sample source code is subject to the terms of the Microsoft
+license agreement under which you licensed this sample source code. If
+you did not accept the terms of the license agreement, you are not
+authorized to use this sample source code. For the terms of the license,
+please see the license agreement between you and Microsoft or, if applicable,
+see the LICENSE.RTF on your install media or the root of your tools installation.
+THE SAMPLE SOURCE CODE IS PROVIDED "AS IS", WITH NO WARRANTIES.
+!endif
+
+TARGETNAME=EBOOT
+TARGETTYPE=PROGRAM
+
+WINCECPU=1
+
+EXEENTRY=StartUp
+EXEBASE=0x83F80000
+
+WINCETARGETFILES=BootImage
+
+LDEFINES=-subsystem:native /DEBUG /DEBUGTYPE:CV /FIXED:NO
+
+INCLUDES=$(INCLUDES);$(_TARGETPLATROOT)\src\bootloader\inc
+
+SOURCES= \
+	bl_cfg.c \
+	bl_map.c \
+	bl_menu.c \
+	bl_flash.c \
+	bl_sdmmc.c \
+	bl_eth.c \
+	bl_main.c
+
+ARM_SOURCES= \
+	bl_startup.s
+
+TARGETLIBS= \
+    $(_TARGETPLATROOT)\lib\$(_CPUDEPPATH)\bsp_clkpwr_support.lib \
+    $(_TARGETPLATROOT)\lib\$(_CPUDEPPATH)\bsp_ethdrv.lib \
+    $(_TARGETPLATROOT)\lib\$(_CPUDEPPATH)\bsp_kitlname.lib \
+    $(_TARGETPLATROOT)\lib\$(_CPUDEPPATH)\bsp_serial.lib \
+    $(_TARGETPLATROOT)\lib\$(_CPUDEPPATH)\boot_utilities.lib \
+    $(_TARGETPLATROOT)\lib\$(_CPUDEPPATH)\boot_sdmmc.lib \
+    $(_TARGETPLATROOT)\lib\$(_CPUDEPPATH)\boot_led.lib \
+    $(_TARGETPLATROOT)\lib\$(_CPUDEPPATH)\boot_flash.lib \
+    $(_PLATCOMMONLIB)\$(_CPUDEPPATH)\oal_log.lib \
+    $(_PLATCOMMONLIB)\$(_CPUDEPPATH)\oal_io.lib \
+    $(_PLATCOMMONLIB)\$(_CPUDEPPATH)\oal_kitl_boot.lib \
+    $(_PLATCOMMONLIB)\$(_CPUDEPPATH)\oal_other.lib \
+    $(_PLATCOMMONLIB)\$(_CPUDEPPATH)\oal_blmenu.lib \
+    $(_PLATCOMMONLIB)\$(_CPUDEPPATH)\oal_blnk.lib \
+    $(_PLATCOMMONLIB)\$(_CPUDEPPATH)\oal_blcommon.lib \
+    $(_COMMONOAKROOT)\lib\$(_CPUINDPATH)\gsnull.lib \
+    $(_COMMONOAKROOT)\lib\$(_CPUDEPPATH)\fulllibc.lib \
+    $(_COMMONOAKROOT)\lib\$(_CPUDEPPATH)\eboot.lib
+WARNLEVEL=0

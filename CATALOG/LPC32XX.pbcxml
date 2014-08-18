@@ -1,0 +1,239 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CatalogFile xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" RequiredVersion="6.00" xsi:schemaLocation="urn:Microsoft.PlatformBuilder/Catalog PbcXml600.xsd" xmlns="urn:Microsoft.PlatformBuilder/Catalog">
+  <FileInformation Id="FileInformation:NXP:LPC32XX">
+    <Title>NXP LPC32XX BSP</Title>
+    <Vendor>NXP</Vendor>
+    <OSVersion>6.00</OSVersion>
+    <FileVersion>6.00</FileVersion>
+  </FileInformation>
+  <Bsp Id="Bsp:NXP:LPC32XX:ARMV4I">
+    <Title>NXP LPC32XX BSP</Title>
+    <PlatformDirectory>LPC32XX</PlatformDirectory>
+    <CpuId>Cpu:ARMV4I</CpuId>
+    <BspItemId>BOOTLOADER:NXP:EBOOT</BspItemId>
+    <BspItemId>AUDIO:NXP:I2S</BspItemId>
+    <BspItemId>BACKLIGHT:NXP:PWM</BspItemId>
+    <BspItemId>DISPLAY:NXP:LCD</BspItemId>
+    <BspItemId>FMD:NXP:SLC</BspItemId>
+    <BspItemId>GENERAL:NXP:I2C1</BspItemId>
+    <BspItemId>GENERAL:NXP:I2C2</BspItemId>
+    <BspItemId>KSCAN:NXP:MATRIX</BspItemId>
+    <BspItemId>SDCARD:NXP:SD</BspItemId>
+    <BspItemId>GENERAL:NXP:SSP0</BspItemId>
+    <BspItemId>GENERAL:NXP:SSP1</BspItemId>
+    <BspItemId>TOUCH:NXP:TSC</BspItemId>
+    <BspItemId>USBH:NXP:USBH</BspItemId>
+    <BspItemId>USBH:NXP:USBFN</BspItemId>
+    <BspItemId>USBH:NXP:USBOTG</BspItemId>
+    <BspItemId>ENET:NXP:NDIS</BspItemId>
+  </Bsp>
+  <Item Id="BOOTLOADER:NXP:EBOOT">
+    <Title>Ethernet bootloader</Title>
+    <Comment>Ethernet bootloader</Comment>
+    <HelpLink Action="WceHelpCollection">pb.catalogitem.EthernetBootloader(eboot):1</HelpLink>
+    <Type>BspSpecific</Type>
+    <SysgenVariable>BSP_LPC32XX_EBOOT</SysgenVariable>
+    <Location />
+    <SourceCode>
+      <Title>$(_WINCEROOT)\PLATFORM\LPC32XX\SRC\BOOTLOADER</Title>
+      <Path>$(_WINCEROOT)\PLATFORM\LPC32XX\SRC\BOOTLOADER</Path>
+    </SourceCode>
+  </Item>
+  <Item Id="BACKLIGHT:NXP:PWM">
+    <Title>LCD backlight driver</Title>
+    <Comment>LCD backlight driver</Comment>
+    <HelpLink Action="WceHelpCollection">pb.catalogitem.sysgen_pm:2</HelpLink>
+    <Type>BspSpecific</Type>
+    <SysgenVariable>BSP_LPC32XX_BACKLIGHT</SysgenVariable>
+    <Variable>CE_MODULES_DISPLAY</Variable>
+    <Module>ms2_backlight.dll</Module>
+    <Location>Device Drivers\Backlight</Location>
+    <SourceCode>
+      <Title>$(_WINCEROOT)\PLATFORM\LPC32XX\SRC\DRIVERS\BACKLIGHT</Title>
+      <Path>$(_WINCEROOT)\PLATFORM\LPC32XX\SRC\DRIVERS\BACKLIGHT</Path>
+    </SourceCode>
+  </Item>
+  <Item Id="DISPLAY:NXP:LCD">
+    <Title>LCD display driver</Title>
+    <Comment>LCD display driver</Comment>
+    <HelpLink Action="WceHelpCollection">pb.catalogitem.sysgen_display:1</HelpLink>
+    <Type>BspSpecific</Type>
+    <SysgenVariable>BSP_LPC32XX_DISPLAY</SysgenVariable>
+    <Variable>CE_MODULES_DISPLAY</Variable>
+    <Module>lpc32xx_lcd.dll</Module>
+    <Location>Device Drivers\Display</Location>
+    <SourceCode>
+      <Title>$(_WINCEROOT)\PLATFORM\LPC32XX\SRC\DRIVERS\DISPLAY</Title>
+      <Path>$(_WINCEROOT)\PLATFORM\LPC32XX\SRC\DRIVERS\DISPLAY</Path>
+    </SourceCode>
+  </Item>
+  <Item Id="TOUCH:NXP:TSC">
+    <Title>Touch controller driver</Title>
+    <Comment>Touch controller</Comment>
+    <HelpLink Action="WceHelpCollection">pb.catalogitem.sysgen_mininput:2</HelpLink>
+    <Type>BspSpecific</Type>
+    <SysgenVariable>BSP_LPC32XX_TOUCH</SysgenVariable>
+    <Variable>CE_MODULES_POINTER</Variable>
+    <Module>lpc32xx_touch.dll</Module>
+    <Location>Device Drivers\Touch</Location>
+    <SourceCode>
+      <Title>$(_WINCEROOT)\PLATFORM\LPC32XX\SRC\DRIVERS\TOUCH</Title>
+      <Path>$(_WINCEROOT)\PLATFORM\LPC32XX\SRC\DRIVERS\TOUCH</Path>
+    </SourceCode>
+  </Item>
+  <Item Id="GENERAL:NXP:I2C1">
+    <Title>General I2C1 driver</Title>
+    <Comment>General I2C1 driver</Comment>
+    <Type>BspSpecific</Type>
+    <SysgenVariable>BSP_LPC32XX_I2C1</SysgenVariable>
+    <Variable>CE_MODULES_DEVICE</Variable>
+    <Module>lpc32xx_i2cdrv.dll</Module>
+    <Location>Device Drivers\I2C</Location>
+    <SourceCode>
+      <Title>$(_WINCEROOT)\PLATFORM\LPC32XX\SRC\DRIVERS\I2C</Title>
+      <Path>$(_WINCEROOT)\PLATFORM\LPC32XX\SRC\DRIVERS\I2C</Path>
+    </SourceCode>
+  </Item>
+  <Item Id="GENERAL:NXP:SSP1">
+    <Title>General SSP1 driver</Title>
+    <Comment>General SSP1 driver</Comment>
+    <Type>BspSpecific</Type>
+    <SysgenVariable>BSP_LPC32XX_SSP1</SysgenVariable>
+    <Variable>CE_MODULES_DEVICE</Variable>
+    <Module>lpc32xx_sspdrv.dll</Module>
+    <Location>Device Drivers\SSP</Location>
+    <SourceCode>
+      <Title>$(_WINCEROOT)\PLATFORM\LPC32XX\SRC\DRIVERS\SSP</Title>
+      <Path>$(_WINCEROOT)\PLATFORM\LPC32XX\SRC\DRIVERS\SSP</Path>
+    </SourceCode>
+  </Item>
+  <Item Id="SDCARD:NXP:SD">
+    <Title>SD card controller driver</Title>
+    <Comment>SD card controller driver</Comment>
+    <HelpLink Action="WceHelpCollection">pb.catalogitem.sysgen_sdbus</HelpLink>
+    <Type>BspSpecific</Type>
+    <SysgenVariable>BSP_LPC32XX_SDCARD</SysgenVariable>
+    <Variable>CE_MODULES_SDBUS</Variable>
+    <Module>lpc32xx_sdhc.dll</Module>
+    <Location>Device Drivers\SD card</Location>
+    <SourceCode>
+      <Title>$(_WINCEROOT)\PLATFORM\LPC32XX\SRC\DRIVERS\SDCARD</Title>
+      <Path>$(_WINCEROOT)\PLATFORM\LPC32XX\SRC\DRIVERS\SDCARD</Path>
+    </SourceCode>
+  </Item>
+  <Item Id="FMD:NXP:SLC">
+    <Title>Flash media driver</Title>
+    <Comment>Flash media driver</Comment>
+    <Type>BspSpecific</Type>
+    <SysgenVariable>BSP_LPC32XX_FLASH</SysgenVariable>
+    <Module>phy3250_flash.dll</Module>
+    <Location>Device Drivers\Flash media</Location>
+    <SourceCode>
+      <Title>$(_WINCEROOT)\PLATFORM\LPC32XX\SRC\DRIVERS\FMD</Title>
+      <Path>$(_WINCEROOT)\PLATFORM\LPC32XX\SRC\DRIVERS\FMD</Path>
+    </SourceCode>
+  </Item>
+  <Item Id="KSCAN:NXP:MATRIX">
+    <Title>Key scanner driver</Title>
+    <Comment>Key scanner driver</Comment>
+    <HelpLink Action="WceHelpCollection">pb.catalogitem.sysgen_mininput:2</HelpLink>
+    <Type>BspSpecific</Type>
+    <SysgenVariable>BSP_LPC32XX_KSCAN</SysgenVariable>
+    <Variable>CE_MODULES_KEYBD</Variable>
+    <Module>KbdLPC32XXUs.dll</Module>
+    <Location>Device Drivers\Key scanner</Location>
+    <SourceCode>
+      <Title>$(_WINCEROOT)\PLATFORM\LPC32XX\SRC\DRIVERS\KSCAN</Title>
+      <Path>$(_WINCEROOT)\PLATFORM\LPC32XX\SRC\DRIVERS\KSCAN</Path>
+    </SourceCode>
+  </Item>
+  <Item Id="AUDIO:NXP:I2S">
+    <Title>Audio driver</Title>
+    <Comment>Audio driver</Comment>
+    <HelpLink Action="WceHelpCollection">pb.catalogitem.sysgen_audio:1</HelpLink>
+    <Type>BspSpecific</Type>
+    <SysgenVariable>BSP_LPC32XX_AUDIO</SysgenVariable>
+    <Variable>CE_MODULES_WAVEAPI</Variable>
+    <Module>lpc32xx_wavedev.dll</Module>
+    <Location>Device Drivers\Audio</Location>
+    <SourceCode>
+      <Title>$(_WINCEROOT)\PLATFORM\LPC32XX\SRC\DRIVERS\WAVEDEV</Title>
+      <Path>$(_WINCEROOT)\PLATFORM\LPC32XX\SRC\DRIVERS\WAVEDEV</Path>
+    </SourceCode>
+  </Item>
+  <Item Id="USBH:NXP:USBH">
+    <Title>USB host controller driver</Title>
+    <Comment>USB host controller</Comment>
+    <HelpLink Action="WceHelpCollection">pb.catalogitem.sysgen_usb:1</HelpLink>
+    <Type>BspSpecific</Type>
+    <SysgenVariable>BSP_LPC32XX_USBH</SysgenVariable>
+    <Variable>CE_MODULES_USBD</Variable>
+    <Module>ohci2.dll</Module>
+    <Location>Device Drivers\USB</Location>
+  </Item>
+  <Item Id="GENERAL:NXP:I2C2">
+    <Title>General I2C2 driver</Title>
+    <Comment>General I2C2 driver</Comment>
+    <Type>BspSpecific</Type>
+    <SysgenVariable>BSP_LPC32XX_I2C2</SysgenVariable>
+    <Variable>CE_MODULES_DEVICE</Variable>
+    <Module>lpc32xx_i2cdrv.dll</Module>
+    <Location>Device Drivers\I2C</Location>
+    <SourceCode>
+      <Title>$(_WINCEROOT)\PLATFORM\LPC32XX\SRC\DRIVERS\I2C</Title>
+      <Path>$(_WINCEROOT)\PLATFORM\LPC32XX\SRC\DRIVERS\I2C</Path>
+    </SourceCode>
+  </Item>
+  <Item Id="GENERAL:NXP:SSP0">
+    <Title>General SSP0 driver</Title>
+    <Comment>General SSP0 driver</Comment>
+    <Type>BspSpecific</Type>
+    <SysgenVariable>BSP_LPC32XX_SSP0</SysgenVariable>
+    <Variable>CE_MODULES_DEVICE</Variable>
+    <Module>lpc32xx_sspdrv.dll</Module>
+    <Location>Device Drivers\SSP</Location>
+    <SourceCode>
+      <Title>$(_WINCEROOT)\PLATFORM\LPC32XX\SRC\DRIVERS\SSP</Title>
+      <Path>$(_WINCEROOT)\PLATFORM\LPC32XX\SRC\DRIVERS\SSP</Path>
+    </SourceCode>
+  </Item>
+  <Item Id="USBH:NXP:USBFN">
+    <Title>USB function driver</Title>
+    <Comment>USB function driver</Comment>
+    <HelpLink Action="WceHelpCollection">pb.catalogitem.sysgen_usbfn:3</HelpLink>
+    <Type>BspSpecific</Type>
+    <SysgenVariable>BSP_LPC32XX_USBFN</SysgenVariable>
+    <Variable>CE_MODULES_USBFN</Variable>
+    <Module>lpc32xx_usbfn.dll</Module>
+    <Location>Device Drivers\USB</Location>
+    <SourceCode>
+      <Title>$(_WINCEROOT)\PLATFORM\LPC32XX\SRC\DRIVERS\USB</Title>
+      <Path>$(_WINCEROOT)\PLATFORM\LPC32XX\SRC\DRIVERS\USB</Path>
+    </SourceCode>
+  </Item>
+  <Item Id="USBH:NXP:USBOTG">
+    <Title>USB On-The-Go driver</Title>
+    <Comment>USB On-The-Go driver</Comment>
+    <Type>BspSpecific</Type>
+    <SysgenVariable>BSP_LPC32XX_USBOTG</SysgenVariable>
+    <Variable>CE_MODULES_USBOTG</Variable>
+    <Module>lpc32xx_usbotg.dll</Module>
+    <Location>Device Drivers\USB</Location>
+    <SourceCode>
+      <Title>$(_WINCEROOT)\PLATFORM\LPC32XX\SRC\DRIVERS\USB</Title>
+      <Path>$(_WINCEROOT)\PLATFORM\LPC32XX\SRC\DRIVERS\USB</Path>
+    </SourceCode>
+  </Item>
+  <Item Id="ENET:NXP:NDIS">
+    <Title>NDIS</Title>
+    <Description>This component add supports for the NDIS miniport driver</Description>
+    <Type>BspSpecific</Type>
+    <Variable>BSP_LPC3250_NDIS</Variable>
+    <Module>lpc3250_NDIS.dll</Module>
+    <Location>Device Drivers\NDIS</Location>
+    <Notification>
+      <Title>Exclusion between Ethernet and KITL</Title>
+      <Html>Be Careful, the Ethernet driver is not compatible with KITL over Ethernet transport layer. If you want to use the driver you have to uncheck "Enable KITL" in the Project Properties-&gt;Build Options settings</Html>
+    </Notification>
+  </Item>
+</CatalogFile>

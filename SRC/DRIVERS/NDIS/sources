@@ -1,0 +1,48 @@
+!if 0
+Copyright (c) Microsoft Corporation.  All rights reserved.
+!endif
+!if 0
+Use of this source code is subject to the terms of the Microsoft end-user
+license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+If you did not accept the terms of the EULA, you are not authorized to use
+this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+install media.
+!endif
+
+!IF ("$(BSP_BIN)" != "1") 
+!IF ("$(BSP_LPC3250_NDIS)" != "1")
+SKIPBUILD=1
+!ENDIF
+!ENDIF
+
+TARGETNAME=lpc3250_NDIS
+TARGETTYPE=DYNLINK
+RELEASETYPE=PLATFORM
+DLLENTRY=DllEntry
+DEFFILE=lpc3250_NDIS.DEF
+
+CDEFINES=$(CDEFINES) -DNDIS_MINIPORT_DRIVER
+
+TARGETLIBS= \
+	$(_COMMONSDKROOT)\lib\$(_CPUINDPATH)\coredll.lib \
+	$(_COMMONOAKROOT)\lib\$(_CPUINDPATH)\ceddk.lib \
+	$(_COMMONSDKROOT)\lib\$(_CPUINDPATH)\ndis.lib \
+	$(_TARGETPLATROOT)\lib\$(_CPUDEPPATH)\bsp_clkpwr_support.lib
+	
+SOURCES=\
+	lpc3250_NDIS_Init.c \
+	lpc3250_NDIS_phy.c \
+	lpc3250_NDIS_dma.c \
+	lpc3250_NDIS_Miniport.c \
+	lpc3250_NDIS_Filter.c \
+	lpc3250_NDIS_Intr.c \
+	lpc3250_NDIS_NDIS.c
+
+FILE_VIEW_INCLUDES_FOLDER= \
+	lpc3250_NDIS_Adapter.h \
+	lpc3250_NDIS_Proto.h
+
+FILE_VIEW_RESOURCE_FOLDER= \
+	lpc3250_NDIS.reg \
+	lpc3250_NDIS.def
+WARNLEVEL=0

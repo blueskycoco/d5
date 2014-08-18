@@ -1,0 +1,45 @@
+!if 0
+Copyright (c) Microsoft Corporation.  All rights reserved.
+!endif
+!if 0
+Use of this sample source code is subject to the terms of the Microsoft
+license agreement under which you licensed this sample source code. If
+you did not accept the terms of the license agreement, you are not
+authorized to use this sample source code. For the terms of the license,
+please see the license agreement between you and Microsoft or, if applicable,
+see the LICENSE.RTF on your install media or the root of your tools installation.
+THE SAMPLE SOURCE CODE IS PROVIDED "AS IS", WITH NO WARRANTIES.
+!endif
+
+RELEASETYPE=PLATFORM
+TARGETNAME=oal
+TARGETTYPE=PROGRAM
+EXEENTRY=StartUp
+NOMIPS16CODE=1
+NOLIBC=1
+
+SOURCES=
+
+LDEFINES=-subsystem:native /DEBUG /DEBUGTYPE:CV /FIXED:NO
+
+TARGETLIBS= \
+    $(_TARGETPLATROOT)\lib\$(_CPUDEPPATH)\oal.lib \
+    $(_COMMONOAKROOT)\lib\$(_CPUDEPPATH)\oemmain.lib \
+    $(_COMMONOAKROOT)\lib\$(_CPUDEPPATH)\nkstub.lib \
+    $(_COMMONOAKROOT)\lib\$(_CPUDEPPATH)\nkldr.lib \
+    $(_TARGETPLATROOT)\lib\$(_CPUDEPPATH)\bsp_serial.lib \
+    $(_TARGETPLATROOT)\lib\$(_CPUDEPPATH)\bsp_args.lib \
+    $(_TARGETPLATROOT)\lib\$(_CPUDEPPATH)\bsp_kitlname.lib \
+    $(_TARGETPLATROOT)\lib\$(_CPUDEPPATH)\bsp_clkpwr_support.lib \
+    $(_PLATCOMMONLIB)\$(_CPUINDPATH)\oal_intr.lib \
+    $(_PLATCOMMONLIB)\$(_CPUINDPATH)\oal_cache_arm926.lib \
+    $(_PLATCOMMONLIB)\$(_CPUINDPATH)\oal_memory_arm.lib \
+    $(_PLATCOMMONLIB)\$(_CPUINDPATH)\oal_io.lib \
+    $(_PLATCOMMONLIB)\$(_CPUDEPPATH)\oal_ioctl.lib \
+    $(_PLATCOMMONLIB)\$(_CPUDEPPATH)\oal_other.lib \
+    $(_PLATCOMMONLIB)\$(_CPUDEPPATH)\oal_log.lib \
+    $(_PLATCOMMONLIB)\$(_CPUINDPATH)\oal_misc_arm.lib \
+    $(_COMMONOAKROOT)\lib\$(_CPUINDPATH)\fulllibc.lib
+
+
+WARNLEVEL=0

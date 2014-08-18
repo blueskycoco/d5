@@ -1,0 +1,146 @@
+;
+; Copyright (c) Microsoft Corporation.  All rights reserved.
+;
+;
+; Use of this sample source code is subject to the terms of the Microsoft
+; license agreement under which you licensed this sample source code. If
+; you did not accept the terms of the license agreement, you are not
+; authorized to use this sample source code. For the terms of the license,
+; please see the license agreement between you and Microsoft or, if applicable,
+; see the LICENSE.RTF on your install media or the root of your tools installation.
+; THE SAMPLE SOURCE CODE IS PROVIDED "AS IS", WITH NO WARRANTIES.
+;
+
+MODULES
+
+;  Name                 Path                                            Memory Type
+;  --------------       ----------------------------------      -----------
+
+; -----------------------------------------------------------------------------
+; @CESYSGEN IF CE_MODULES_DISPLAY
+IF BSP_LPC32XX_DISPLAY
+   lpc32xx_lcd.dll   $(_FLATRELEASEDIR)\lpc32xx_lcd.dll   NK SHK
+ENDIF BSP_LPC32XX_DISPLAY
+
+; @CESYSGEN IF CE_MODULES_PM
+IF BSP_LPC32XX_BACKLIGHT
+    ms2_backlight.dll       $(_FLATRELEASEDIR)\ms2_backlight.dll    NK  SHK
+ENDIF BSP_LPC32XX_BACKLIGHT
+; @CESYSGEN ENDIF CE_MODULES_PM
+; @CESYSGEN ENDIF CE_MODULES_DISPLAY
+; -----------------------------------------------------------------------------
+; -----------------------------------------------------------------------------
+; @CESYSGEN IF CE_MODULES_KEYBD
+IF BSP_LPC32XX_KSCAN
+    KbdLPC32XXUs.dll      $(_FLATRELEASEDIR)\KbdLPC32XXUs.dll          NK  SHK
+ENDIF BSP_LPC32XX_KSCAN
+; @CESYSGEN ENDIF CE_MODULES_KEYBD
+; -----------------------------------------------------------------------------
+; -----------------------------------------------------------------------------
+; @CESYSGEN IF CE_MODULES_POINTER
+IF BSP_LPC32XX_TOUCH
+   lpc32xx_touch.dll   $(_FLATRELEASEDIR)\lpc32xx_touch.dll   NK SHK
+ENDIF BSP_LPC32XX_TOUCH
+; @CESYSGEN ENDIF CE_MODULES_POINTER
+; -----------------------------------------------------------------------------
+; -----------------------------------------------------------------------------
+; @CESYSGEN IF CE_MODULES_KEYBD || CE_MODULES_POINTER
+; @CESYSGEN IF CE_MODULES_NOPKEYBOARD
+IF BSP_LPC32XX_KSCAN
+IF BSP_NOMOUSE !
+
+IF LOCALE=0411 !
+IF LOCALE=0412 !
+    kbdmouse.dll           $(_FLATRELEASEDIR)\KbdNopUs.dll          NK  SHK
+ENDIF LOCALE=0412 !
+ENDIF LOCALE=0411 !
+
+IF LOCALE=0411
+IF BSP_KEYBD_JPN1
+    kbdmouse.dll           $(_FLATRELEASEDIR)\KbdNopJpn1.dll        NK  SHK
+ENDIF BSP_KEYBD_JPN1
+
+IF BSP_KEYBD_JPN1 !
+    kbdmouse.dll           $(_FLATRELEASEDIR)\KbdNopJpn2.dll        NK  SHK
+ENDIF BSP_KEYBD_JPN1
+ENDIF LOCALE=0411
+
+IF LOCALE=0412
+    kbdmouse.dll           $(_FLATRELEASEDIR)\KbdNopKor.dll         NK  SHK
+ENDIF LOCALE=0412
+ENDIF BSP_NOMOUSE !
+ENDIF BSP_LPC32XX_KSCAN
+; @CESYSGEN ENDIF CE_MODULES_NOPKEYBOARD
+; -----------------------------------------------------------------------------
+; -----------------------------------------------------------------------------
+; @CESYSGEN IF CE_MODULES_DEVICE
+IF BSP_LPC32XX_I2C1 || BSP_LPC32XX_I2C2 || BSP_LPC32XX_USBOTG
+    lpc32xx_i2cdrv.dll          $(_FLATRELEASEDIR)\lpc32xx_i2cdrv.dll    NK  SHK
+ENDIF BSP_LPC32XX_I2C1 || BSP_LPC32XX_I2C2 || BSP_LPC32XX_USBOTG
+; -----------------------------------------------------------------------------
+; -----------------------------------------------------------------------------
+IF BSP_LPC32XX_SSP0 || BSP_LPC32XX_SSP1
+    lpc32xx_sspdrv.dll          $(_FLATRELEASEDIR)\lpc32xx_sspdrv.dll    NK  SHK
+ENDIF BSP_LPC32XX_SSP0 || BSP_LPC32XX_SSP1
+
+;------------------------------------------------------------------------------
+; NDIS Driver
+;------------------------------------------------------------------------------
+IF BSP_LPC3250_NDIS
+IF IMGNOKITL
+	lpc3250_NDIS.dll		$(_FLATRELEASEDIR)\lpc3250_NDIS.dll				NK SHK
+ENDIF IMGNOKITL
+ENDIF BSP_LPC3250_NDIS
+
+
+; @CESYSGEN ENDIF CE_MODULES_DEVICE
+; -----------------------------------------------------------------------------
+; -----------------------------------------------------------------------------
+; @CESYSGEN IF CE_MODULES_WAVEAPI
+IF BSP_LPC32XX_AUDIO
+    lpc32xx_wavedev.dll     $(_FLATRELEASEDIR)\lpc32xx_wavedev.dll    NK  SHK
+ENDIF BSP_LPC32XX_AUDIO
+; @CESYSGEN ENDIF CE_MODULES_WAVEAPI
+; -----------------------------------------------------------------------------
+; -----------------------------------------------------------------------------
+; @CESYSGEN IF CE_MODULES_SDBUS
+IF BSP_LPC32XX_SDCARD
+    lpc32xx_sdhc.dll     $(_FLATRELEASEDIR)\lpc32xx_sdhc.dll    NK  SHK
+ENDIF BSP_LPC32XX_SDCARD
+; @CESYSGEN ENDIF CE_MODULES_SDBUS
+; -----------------------------------------------------------------------------
+; -----------------------------------------------------------------------------
+IF BSP_LPC32XX_FLASH
+   phy3250_flash.dll       $(_FLATRELEASEDIR)\phy3250_flash.dll             NK  SHK
+ENDIF BSP_LPC32XX_FLASH
+; -----------------------------------------------------------------------------
+; -----------------------------------------------------------------------------
+; @CESYSGEN IF CE_MODULES_DEVICE
+; @CESYSGEN IF CE_MODULES_GIISR
+    giisr.dll              $(_FLATRELEASEDIR)\giisr.dll             NK  SHK
+; @CESYSGEN ENDIF CE_MODULES_GIISR
+; @CESYSGEN ENDIF CE_MODULES_DEVICE
+; -----------------------------------------------------------------------------
+; -----------------------------------------------------------------------------
+; @CESYSGEN IF CE_MODULES_USBOTG
+IF BSP_LPC32XX_USBOTG
+   lpc32xx_usbotg.dll       $(_FLATRELEASEDIR)\lpc32xx_usbotg.dll           NK  SHK
+ENDIF BSP_LPC32XX_USBOTG
+; @CESYSGEN ENDIF CE_MODULES_USBOTG
+; @CESYSGEN IF CE_MODULES_USBD
+IF BSP_LPC32XX_USBH
+    ohci2.dll               $(_FLATRELEASEDIR)\ohci2.dll            NK  SHK
+ENDIF BSP_LPC32XX_USBH
+; @CESYSGEN ENDIF CE_MODULES_USBD
+; @CESYSGEN IF CE_MODULES_USBFN
+IF BSP_LPC32XX_USBFN
+   lpc32xx_usbfn.dll       $(_FLATRELEASEDIR)\lpc32xx_usbfn.dll             NK  SHK
+ENDIF BSP_LPC32XX_USBFN
+; @CESYSGEN ENDIF CE_MODULES_USBFN
+; -----------------------------------------------------------------------------
+
+FILES
+
+;  Name                 Path                                        Memory Type
+regedit.exe             $(_FLATRELEASEDIR)\regedit.exe              NK     U
+;  --------------       ----------------------------------          -----------

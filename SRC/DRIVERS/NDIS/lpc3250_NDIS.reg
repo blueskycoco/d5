@@ -1,0 +1,34 @@
+[HKEY_LOCAL_MACHINE\Comm\LPC3250_NDIS]
+	"DisplayName"="NXP LPC3250 Ethernet"
+	"Group"="NDIS"
+	"ImagePath"="lpc3250_NDIS.dll"
+
+[HKEY_LOCAL_MACHINE\Comm\LPC3250_NDIS\Linkage]
+	"Route"=multi_sz:"LPC3250_NDIS1"
+
+[HKEY_LOCAL_MACHINE\Comm\LPC3250_NDIS1]
+	"DisplayName"="NXP LPC3250 Ethernet"
+	"Group"="NDIS"
+	"ImagePath"="lpc3250_NDIS.dll"
+
+[HKEY_LOCAL_MACHINE\Comm\LPC3250_NDIS1\Parms]
+	"BusType"=dword:0
+	"BusNumber"=dword:0
+;	Note: make sure that the address space defined here is available for the EMAC (written as reserved in the config.bib)
+;	"BufferAddr"=dword:08000000		;	IRAM start address
+ 	"BufferAddr"=dword:83E00000		;	SDRAM start address
+	"TxStrides"=dword:14			;	20 Frames maximum (20*(1520 + 8 + 4) = 30640 B)
+	"RxStrides"=dword:32			;	50 Frames maximum (50*(1520 + 8 + 8) = 76800 B)
+	"IRQNumber"=dword:0a			;	On LPC3250, EthIT = 10
+	"IoBaseAddress"=dword:31060000	;	Base address of the EMAC
+	"RMII"=dword:1					;	0 = Use MII ; Other = Use RMII
+
+[HKEY_LOCAL_MACHINE\Comm\LPC3250_NDIS1\Parms\TcpIp]
+	"EnableDHCP"=dword:0
+	"DefaultGateway"="192.168.0.1"
+	"UseZeroBroadcast"=dword:0
+	"IpAddress"="192.168.0.100"
+	"Subnetmask"="255.255.255.0"
+
+[HKEY_LOCAL_MACHINE\Comm\Tcpip\Linkage]
+	"Bind"=multi_sz:"LPC3250_NDIS1"
