@@ -103,8 +103,8 @@ the CS around all register accesses.
 // for 8BIT data bus
 #define CPU_REG_STRIDE		1
 
-#define INB(pInfo, reg) (READ_PORT_UCHAR((UCHAR *)((pInfo)->reg)))
-#define OUTB(pInfo, reg, value) (WRITE_PORT_UCHAR((UCHAR *)((pInfo)->reg), (unsigned char)(value)))
+#define INL(pInfo, reg) (READ_PORT_ULONG((ULONG *)((pInfo)->reg)))
+#define OUTL(pInfo, reg, value) (WRITE_PORT_ULONG((ULONG *)((pInfo)->reg), (unsigned long)(value)))
 
 
 //
@@ -140,30 +140,30 @@ LOOKUP_TBL  HighWaterTable = {HIGH_WATER_SIZE, (PAIRS *) HighWaterPairs};
 VOID ProcessLSR (PSER16550_INFO  pHWHead)
 {
 	ULONG LineEvents = 0;
-	if ( pHWHead->LSR & (SERIAL_LSR_OE | SERIAL_LSR_PE | SERIAL_LSR_FE)) {
+	if ( pHWHead->Iir & (LPC32XX_HSU_RX_OE_INT | LPC32XX_HSU_FE_INT)) {
 		// Note: Its not wise to do debug msgs in here since they will
 		// pretty much guarantee that the FIFO gets overrun.
-		if ( pHWHead->LSR & SERIAL_LSR_OE ) {
+		if ( pHWHead->Iir & LPC32XX_HSU_RX_OE_INT ) {
 			// DEBUGMSG (ZONE_WARN, (TEXT("Overrun\r\n")));
 			pHWHead->DroppedBytes++;
 			pHWHead->CommErrors |= CE_OVERRUN;
+			OUTL(pHWHead, pIir, pHWHead->Iir&LPC32XX_HSU_RX_OE_INT);
 		}
 
-		if ( pHWHead->LSR & SERIAL_LSR_PE ) {
-			// DEBUGMSG (ZONE_WARN, (TEXT("parity\r\n")));
-			pHWHead->CommErrors |= CE_RXPARITY;
-		}
-
-		if ( pHWHead->LSR & SERIAL_LSR_FE ) {
+		if ( pHWHead->Iir & LPC32XX_HSU_FE_INT ) {
 			// DEBUGMSG (ZONE_WARN, (TEXT("frame\r\n")));
 			pHWHead->CommErrors |= CE_FRAME;
+			OUTL(pHWHead, pIir, pHWHead->Iir&LPC32XX_HSU_FE_INT);
 		}
 
 		LineEvents |= EV_ERR;
 	}
 
-	if ( pHWHead->LSR & SERIAL_LSR_BI )
+	if ( pHWHead->Iir & LPC32XX_HSU_BRK_INT )
+	{
 		LineEvents |= EV_BREAK;
+		OUTL(pHWHead, pIir, pHWHead->Iir&LPC32XX_HSU_BRK_INT);
+	}
 
 	// Let WaitCommEvent know about this error
 	if ( LineEvents )
@@ -178,65 +178,13 @@ ReadLSR(
 {
 
 	try {
-		pHWHead->LSR = INB(pHWHead, pLSR);
+		pHWHead->Iir = INL(pHWHead, pIir);
 	}
 	except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
 			EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
-		pHWHead->LSR = SERIAL_LSR_THRE;
+		pHWHead->Iir = 0xff;
 	}
 	ProcessLSR (pHWHead);
-}
-
-//
-// Reading the MSR clears many of its bits.  So, we provide this wrapper,
-// which reads the register, records any interesting values, and
-// stores the current MSR contents in the shadow register.
-// Note that we always have DDCD and DCTS enabled, so if someone
-// wants to keep an eye on these lines, its OK to simply read the
-// shadow register, since if the value changes, the interrupt
-// will cause the shadow to be updated.
-//
-	__inline 
-VOID ProcessMSR (PSER16550_INFO  pHWHead)
-{
-
-	ULONG        Events = 0;
-	// For changes, we use callback to evaluate the event
-	if (pHWHead->MSR  & SERIAL_MSR_DCTS)
-		Events |= EV_CTS;
-
-	if ( pHWHead->MSR  & SERIAL_MSR_DDSR )
-		Events |= EV_DSR;
-
-	if ( pHWHead->MSR  & SERIAL_MSR_TERI )
-		Events |= EV_RING;
-
-	if ( pHWHead->MSR  & SERIAL_MSR_DDCD )
-		Events |= EV_RLSD;
-
-	if ( Events )
-		pHWHead->EventCallback( pHWHead->pMddHead, Events );
-
-}
-__inline
-	VOID
-ReadMSR(
-		PSER16550_INFO  pHWHead
-	   )
-{
-	UCHAR       msr;
-
-	try {
-		msr = INB(pHWHead, pMSR);
-	}
-	except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
-			EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
-		msr = 0;
-	}
-
-	// Save the MSR value in a shadow
-	pHWHead->MSR = msr;
-	ProcessMSR (pHWHead);
 }
 
 //#ifdef DEBUG
@@ -249,109 +197,47 @@ DumpSerialRegisters(
 		PVOID  pHead
 		)
 {
-	UINT8 byte;
+	UINT32 byte;
 	PSER16550_INFO   pHWHead   = (PSER16550_INFO)pHead;
 
 
 #pragma prefast(disable: 322, "Recover gracefully from hardware failure")
 	try {
 		ReadLSR( pHWHead );
-		byte = pHWHead->LSR;
+		byte = pHWHead->Iir;
 
-		NKDbgPrintfW(TEXT("16550 lsr: \t%2.2X\t"), byte);
-		if ( byte & SERIAL_LSR_DR )
-			NKDbgPrintfW(TEXT("DataReady "));
-		if ( byte & SERIAL_LSR_OE )
-			NKDbgPrintfW(TEXT("OverRun "));
-		if ( byte & SERIAL_LSR_PE )
-			NKDbgPrintfW(TEXT("ParityErr "));
-		if ( byte & SERIAL_LSR_FE )
+		NKDbgPrintfW(TEXT("16550 Iir: \t%2.2X\t"), byte);
+		if ( byte & LPC32XX_HSU_TX_INT )
+			NKDbgPrintfW(TEXT("Tx int "));
+		if ( byte & LPC32XX_HSU_RX_TRIG_INT )
+			NKDbgPrintfW(TEXT("Rx trig int "));
+		if ( byte & LPC32XX_HSU_RX_TIMEOUT_INT )
+			NKDbgPrintfW(TEXT("Rx timeout int "));
+		if ( byte & LPC32XX_HSU_FE_INT )
 			NKDbgPrintfW(TEXT("FramingErr "));
-		if ( byte & SERIAL_LSR_BI )
+		if ( byte & LPC32XX_HSU_BRK_INT )
 			NKDbgPrintfW(TEXT("BreakIntpt "));
-		if ( byte & SERIAL_LSR_THRE )
-			NKDbgPrintfW(TEXT("THREmpty "));
-		if ( byte & SERIAL_LSR_TEMT )
-			NKDbgPrintfW(TEXT("TXEmpty "));
-		if ( byte & SERIAL_LSR_FIFOERR )
-			NKDbgPrintfW(TEXT("FIFOErr "));
+		if ( byte & LPC32XX_HSU_RX_OE_INT )
+			NKDbgPrintfW(TEXT("Rx overrun int "));
+		if ( byte & LPC32XX_HSU_TX_INT_SET )
+			NKDbgPrintfW(TEXT("Tx int set "));
 		NKDbgPrintfW(TEXT("\r\n"));
 
-		byte = INB(pHWHead, pData);
+		byte = INL(pHWHead, pRData);
 		NKDbgPrintfW(TEXT("16550 rbr/thr:\t%2.2X\r\n"), byte);
 
-		byte = INB(pHWHead, pIER);
-		NKDbgPrintfW(TEXT("16550 IER: \t%2.2X\t"), byte);
-		if ( byte & SERIAL_IER_RDA )
-			NKDbgPrintfW(TEXT("RXData "));
-		if ( byte & SERIAL_IER_THR )
-			NKDbgPrintfW(TEXT("TXData "));
-		if ( byte & SERIAL_IER_RLS )
-			NKDbgPrintfW(TEXT("RXErr "));
-		if ( byte & SERIAL_IER_MS )
-			NKDbgPrintfW(TEXT("ModemStatus "));
+		byte = INL(pHWHead, pLevel);
+		NKDbgPrintfW(TEXT("16550 Tx /Rx Level: \t%2.2X\t"), byte);
+		
 		NKDbgPrintfW(TEXT("\r\n"));
 
-		byte = INB(pHWHead, pIIR_FCR);
-		NKDbgPrintfW(TEXT("16550 iir: \t%2.2X\t"), byte);
-		if ( byte & SERIAL_IIR_RDA )
-			NKDbgPrintfW(TEXT("RXData "));
-		if ( byte & SERIAL_IIR_THRE )
-			NKDbgPrintfW(TEXT("TXData "));
-		if ( byte & SERIAL_IIR_RLS )
-			NKDbgPrintfW(TEXT("RXErr "));
-		if ( (byte & SERIAL_IIR_CTI) == SERIAL_IIR_CTI )
-			NKDbgPrintfW(TEXT("CTI "));
-		if ( byte == SERIAL_IIR_MS )
-			NKDbgPrintfW(TEXT("ModemStatus "));
-		if ( byte & 0x01 )
-			NKDbgPrintfW(TEXT("IntPending "));
+		byte = INL(pHWHead, pCr);
+		NKDbgPrintfW(TEXT("16550 Cr: \t%2.2X\t"), byte);
+
 		NKDbgPrintfW(TEXT("\r\n"));
 
-		byte = INB(pHWHead, pLCR);
-		NKDbgPrintfW(TEXT("16550 lcr: \t%2.2X\t"), byte);
-
-		NKDbgPrintfW(TEXT("%dBPC "), ((byte & 0x03)+5) );
-
-		if ( byte & SERIAL_LCR_DLAB )
-			NKDbgPrintfW(TEXT("DLAB "));
-		if ( byte & SERIAL_LCR_DLAB )
-			NKDbgPrintfW(TEXT("Break "));
-		NKDbgPrintfW(TEXT("\r\n"));
-
-		byte = INB(pHWHead, pMCR);
-		NKDbgPrintfW(TEXT("16550 mcr: \t%2.2X\t"), byte);
-		if ( byte & SERIAL_MCR_DTR )
-			NKDbgPrintfW(TEXT("DTR "));
-		if ( byte & SERIAL_MCR_RTS )
-			NKDbgPrintfW(TEXT("RTS "));
-		if ( byte & SERIAL_MCR_OUT1 )
-			NKDbgPrintfW(TEXT("OUT1 "));
-		if ( byte & SERIAL_MCR_OUT2 )
-			NKDbgPrintfW(TEXT("OUT2 "));
-		if ( byte & SERIAL_MCR_LOOP )
-			NKDbgPrintfW(TEXT("LOOP "));
-		NKDbgPrintfW(TEXT("\r\n"));
-
-		ReadMSR( pHWHead );
-		byte = pHWHead->MSR;
-		NKDbgPrintfW(TEXT("16550 msr: \t%2.2X\t"), byte);
-		if ( byte & SERIAL_MSR_DCTS )
-			NKDbgPrintfW(TEXT("DCTS "));
-		if ( byte & SERIAL_MSR_DDSR )
-			NKDbgPrintfW(TEXT("DDSR "));
-		if ( byte & SERIAL_MSR_TERI )
-			NKDbgPrintfW(TEXT("TERI "));
-		if ( byte & SERIAL_MSR_DDCD )
-			NKDbgPrintfW(TEXT("DDCD"));
-		if ( byte & SERIAL_MSR_CTS )
-			NKDbgPrintfW(TEXT(" CTS"));
-		if ( byte & SERIAL_MSR_DSR )
-			NKDbgPrintfW(TEXT("DSR "));
-		if ( byte & SERIAL_MSR_RI )
-			NKDbgPrintfW(TEXT("RI "));
-		if ( byte & SERIAL_MSR_DCD )
-			NKDbgPrintfW(TEXT("DCD "));
+		byte = INL(pHWHead, pRcr);
+		NKDbgPrintfW(TEXT("16550 Rcr: \t%2.2X\t"), byte);
 		NKDbgPrintfW(TEXT("\r\n"));
 
 	}
@@ -362,41 +248,45 @@ DumpSerialRegisters(
 #pragma prefast(pop)
 }
 //#endif // DEBUG
+unsigned int __serial_get_clock_div(unsigned long uartclk,
+	unsigned long rate) {
+	UINT32 div, goodrate, hsu_rate, l_hsu_rate, comprate;
+	UINT32 rate_diff;
 
-VOID set_div(UINT32 baud)
+	/* Find the closest divider to get the desired clock rate */
+	div = uartclk / rate;
+	goodrate = hsu_rate = (div / 14) - 1;
+	if (hsu_rate != 0)
+		hsu_rate--;
+
+	/* Tweak divider */
+	l_hsu_rate = hsu_rate + 3;
+	rate_diff = 0xFFFFFFFF;
+
+	while (hsu_rate < l_hsu_rate) {
+		comprate = uartclk / ((hsu_rate + 1) * 14);
+		if (abs(comprate - rate) < rate_diff) {
+			goodrate = hsu_rate;
+			rate_diff = abs(comprate - rate);
+		}
+
+		hsu_rate++;
+	}
+	if (hsu_rate > 0xFF)
+		hsu_rate = 0xFF;
+
+	return goodrate;
+}
+
+VOID set_div(PSER16550_INFO    pHWHead,UINT32 baud)
 {
-	CLKPWR_REGS_T *pClkpwr;
-	UINT32 basepclk, savedclkrate, diff, clkrate;
-	UINT32 idxx, idyy;	
-	typedef struct
-	{
-		UNS_32 divx;
-		UNS_32 divy; // For x/y
-	} UART_CLKDIV_T;
-	UART_CLKDIV_T div;
 
-	pClkpwr = (CLKPWR_REGS_T *) OALPAtoVA((UINT32) CLKPWR, FALSE);
+	UINT32 basepclk, savedclkrate, diff, clkrate;
 
 	// Get base clock for UART
 	basepclk = (INT32)(clkpwr_get_base_clock_rate(CLKPWR_PERIPH_CLK) >> 4);
 
-	// Find the best divider
-	div.divx = div.divy = 0;
-	savedclkrate = 0;
-	diff = 0xFFFFFFFF;
-	for (idxx = 1; idxx < 0xFF; idxx++) {
-		for (idyy = idxx; idyy < 0xFF; idyy++) {
-			clkrate = (basepclk * idxx) / idyy;
-			if ((UINT32) val_diff_abs(clkrate, baud) < diff) {
-				diff = val_diff_abs(clkrate, baud);
-				savedclkrate = clkrate;
-				div.divx = idxx;
-				div.divy = idyy;
-			}
-		}
-	}
-	pClkpwr->clkpwr_uart3_clk_ctrl = CLKPWR_UART_X_DIV(div.divx) | CLKPWR_UART_Y_DIV(div.divy);
-
+	OUTL(pHWHead,pRcr,__serial_get_clock_div(basepclk,baud));
 	return ;
 }
 
@@ -413,21 +303,7 @@ ClearPendingInts(
 	EnterCriticalSection(&(pHWHead->RegCritSec));
 
 	try {
-		pHWHead->IIR = INB(pHWHead, pIIR_FCR); 
-		while ( ! (pHWHead->IIR & 0x01) ) {
-			DEBUGMSG (ZONE_INIT, (TEXT("!!IIR %X\r\n"), pHWHead->IIR));
-			// Reading LSR clears RLS interrupts.
-			ReadLSR( pHWHead );
-
-			// Reset RX FIFO to clear any old data remaining in it.
-			OUTB(pHWHead, pIIR_FCR, pHWHead->FCR | SERIAL_FCR_RCVR_RESET);
-
-			// Reading MSR clears Modem Status interrupt
-			ReadMSR( pHWHead );
-
-			// Simply reading IIR is sufficient to clear THRE
-			pHWHead->IIR = INB(pHWHead, pIIR_FCR);
-		}    
+		OUTL(pHWHead,pIir,(LPC32XX_HSU_TX_INT | LPC32XX_HSU_FE_INT |LPC32XX_HSU_BRK_INT | LPC32XX_HSU_RX_OE_INT));		
 	}
 	except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
 			EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
@@ -569,11 +445,11 @@ SL_Open(
 	EnterCriticalSection(&(pHWHead->RegCritSec));
 #pragma prefast(disable: 322, "Recover gracefully from hardware failure")
 	try {
-		OUTB(pHWHead, pIER, (UCHAR)IER_NORMAL_INTS);
-		OUTB(pHWHead, pMCR, SERIAL_MCR_IRQ_ENABLE);
+		OUTL(pHWHead, pIER, (UCHAR)IER_NORMAL_INTS);
+		OUTL(pHWHead, pMCR, SERIAL_MCR_IRQ_ENABLE);
 
 		// Set default framing bits.
-		OUTB(pHWHead, pLCR, SERIAL_8_DATA | SERIAL_1_STOP | SERIAL_NONE_PARITY);
+		OUTL(pHWHead, pLCR, SERIAL_8_DATA | SERIAL_1_STOP | SERIAL_NONE_PARITY);
 
 		DEBUGMSG (ZONE_OPEN,
 				(TEXT("SL_Open Setting DCB parameters\r\n")));
@@ -593,7 +469,7 @@ SL_Open(
 			// Shadow the FCR bitmask since reading this location is the IIR.
 			pHWHead->FCR = SERIAL_FCR_ENABLE | (BYTE)HighWaterPairs[WATERMAKER_ENTRY].Key;
 
-			OUTB(pHWHead, pIIR_FCR,
+			OUTL(pHWHead, pIIR_FCR,
 					(pHWHead->FCR | SERIAL_FCR_RCVR_RESET | SERIAL_FCR_TXMT_RESET) );
 		}
 
@@ -649,10 +525,10 @@ SL_Close(
 	try {
 		// Disable all interrupts and clear MCR.
 
-		OUTB(pHWHead, pIER, (UCHAR)0); 
-		OUTB(pHWHead, pMCR, (UCHAR)0);
+		OUTL(pHWHead, pIER, (UCHAR)0); 
+		OUTL(pHWHead, pMCR, (UCHAR)0);
 
-		pHWHead->IIR   = INB(pHWHead, pIIR_FCR);        
+		pHWHead->IIR   = INL(pHWHead, pIIR_FCR);        
 	}
 	except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
 			EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
@@ -731,36 +607,21 @@ Ser_GetRegistryData(PSER_INFO pHWHead, LPCTSTR regKeyPath)
 
 	switch(pHWHead->dwDevIndex)
 	{
-/*		case 1:
+		case 1:
 			{        			
-				phBase.QuadPart = HS_UART1_BASE;//0x28000000;
+				phBase.QuadPart = HS_UART1_BASE;
 				irq = IRQ_UART_IIR1;
 				pHWHead->dwSysIntr = OAL_INTR_IRQ_UART1;
 				RETAILMSG(1,(TEXT("Ser_GetRegistryData UART1\r\n")));
 			}
-			break;*/
-		case 3:
-			{
-				volatile UINT32 tmp;
-				UART_CNTL_REGS_T *pUARTCntlRegs;	
-				pUARTCntlRegs = (UART_CNTL_REGS_T *) OALPAtoVA((UINT32) UARTCNTL,FALSE);
-				clkpwr_clk_en_dis(CLKPWR_UART3_CLK, 1);
-				tmp = pUARTCntlRegs->clkmode & UART_CLKMODE_MASK(3);
-				pUARTCntlRegs->clkmode = (tmp |	UART_CLKMODE_LOAD(UART_CLKMODE_AUTO, (3)));	
-				pUARTCntlRegs->ctrl |= UART_U3_MD_CTRL_EN;	//need test and check
-				phBase.QuadPart = UART3_BASE;//0x29000000;
-				irq = IRQ_UART_IIR3;
-				pHWHead->dwSysIntr = OAL_INTR_IRQ_UART3;
-				RETAILMSG(1,(TEXT("Ser_GetRegistryData UART3\r\n")));
-			}
 			break;
 		default:
-			RETAILMSG(1,(TEXT("Index is invalid\r\n")));
+			RETAILMSG(1,(TEXT("HS driver , Index is invalid\r\n")));
 			return FALSE;
 	}
 
 	// Map physical memory
-	pHWHead->pBaseAddress = (PUCHAR)MmMapIoSpace(phBase, 8, FALSE);
+	pHWHead->pBaseAddress = (PUCHAR)MmMapIoSpace(phBase, 24, FALSE);
 
 	if (pHWHead->pBaseAddress == NULL) {
 		DEBUGMSG(ZONE_ERROR, (L" SL_Init - Failed map physical memory 0x%x\n", phBase.LowPart));
@@ -804,14 +665,12 @@ SL_Init2(
 	pHWHead->ChipID = CHIP_ID_16550;
 
 	// Set up pointers to 16550 registers
-	pHWHead->pData    = pRegBase + (RegStride * RECEIVE_BUFFER_REGISTER);
-	pHWHead->pIER     = pRegBase + (RegStride * INTERRUPT_ENABLE_REGISTER);
-	pHWHead->pIIR_FCR = pRegBase + (RegStride * INTERRUPT_IDENT_REGISTER);
-	pHWHead->pLCR     = pRegBase + (RegStride * LINE_CONTROL_REGISTER);
-	pHWHead->pMCR     = pRegBase + (RegStride * MODEM_CONTROL_REGISTER);
-	pHWHead->pLSR     = pRegBase + (RegStride * LINE_STATUS_REGISTER);
-	pHWHead->pMSR     = pRegBase + (RegStride * MODEM_STATUS_REGISTER);
-	pHWHead->pScratch = pRegBase + (RegStride * SCRATCH_REGISTER);
+	pHWHead->pRData    = pRegBase + (RegStride * RECEIVE_BUFFER_REGISTER);
+	pHWHead->pTData     = pRegBase + (RegStride * TRANSMIT_HOLDING_REGISTER);
+	pHWHead->pLevel = pRegBase + (RegStride * LEVEL_REGISTER);
+	pHWHead->pIir     = pRegBase + (RegStride * INTERRUPT_IDENT_REGISTER);
+	pHWHead->pCr     = pRegBase + (RegStride * CONTROL_REGISTER);
+	pHWHead->pRcr     = pRegBase + (RegStride * RATE_CONTROL_REGISTER);
 
 	// Store info for callback function
 	pHWHead->EventCallback = EventCallback;
@@ -824,7 +683,7 @@ SL_Init2(
 	DumpSerialRegisters(pHWHead);
 
 	// Don't allow any interrupts till PostInit.
-	OUTB(pHWHead, pIER, (UCHAR)0);
+	OUTL(pHWHead, pCr, LPC32XX_HSU_TX_TL8B | LPC32XX_HSU_RX_TL32B |LPC32XX_HSU_OFFSET(20) | LPC32XX_HSU_TMO_INACT_4B);
 
 	InitializeCriticalSection(&(pHWHead->TransmitCritSec));
 	InitializeCriticalSection(&(pHWHead->RegCritSec));
@@ -889,25 +748,20 @@ SL_Init(
 	pHWHead->CommProp.dwReserved1		= 0;
 	pHWHead->CommProp.dwMaxTxQueue		= 16;
 	pHWHead->CommProp.dwMaxRxQueue		= 16;
-	pHWHead->CommProp.dwMaxBaud			= BAUD_460800;
+	pHWHead->CommProp.dwMaxBaud			= BAUD_921600;
 	pHWHead->CommProp.dwProvSubType		= PST_RS232;
 
-	pHWHead->CommProp.dwProvCapabilities =PCF_DTRDSR | PCF_INTTIMEOUTS | PCF_PARITY_CHECK | PCF_RLSD | 
-		PCF_RTSCTS | PCF_SETXCHAR | PCF_SPECIALCHARS | 
-		PCF_TOTALTIMEOUTS | PCF_XONXOFF;
+	pHWHead->CommProp.dwProvCapabilities = PCF_INTTIMEOUTS |PCF_SPECIALCHARS | PCF_TOTALTIMEOUTS;
 
 	pHWHead->CommProp.dwSettableBaud	=BAUD_075 | BAUD_110 | BAUD_150 | BAUD_300 | BAUD_600 | BAUD_1200 | 
 		BAUD_1800 | BAUD_2400 | BAUD_4800 | BAUD_7200 | BAUD_9600 | BAUD_14400 |
-		BAUD_19200 | BAUD_38400 | BAUD_57600 | BAUD_115200 | BAUD_230400 | BAUD_460800;
+		BAUD_19200 | BAUD_38400 | BAUD_57600 | BAUD_115200 | BAUD_230400 | BAUD_460800 | BAUD_921600;
 
-	pHWHead->CommProp.dwSettableParams	=SP_BAUD | SP_DATABITS | SP_HANDSHAKING | SP_PARITY |
-		SP_PARITY_CHECK | SP_RLSD | SP_STOPBITS;
+	pHWHead->CommProp.dwSettableParams	=SP_BAUD;
 
-	pHWHead->CommProp.wSettableData		=DATABITS_5 | DATABITS_6 | DATABITS_7 | DATABITS_8;
+	pHWHead->CommProp.wSettableData		=DATABITS_8;
 
-	pHWHead->CommProp.wSettableStopParity=STOPBITS_10 | STOPBITS_20 |
-		PARITY_NONE | PARITY_ODD | PARITY_EVEN | PARITY_SPACE |
-		PARITY_MARK;
+	pHWHead->CommProp.wSettableStopParity=STOPBITS_10 |PARITY_NONE;
 
 	pHWHead->fIRMode  = FALSE;   // Select wired by default
 
@@ -997,8 +851,8 @@ SL_ClearDTR(
 	try {
 		unsigned char byte;
 
-		byte = INB((PSER16550_INFO)pHead, pMCR);
-		OUTB((PSER16550_INFO)pHead, pMCR, byte & ~SERIAL_MCR_DTR);
+		byte = INL((PSER16550_INFO)pHead, pMCR);
+		OUTL((PSER16550_INFO)pHead, pMCR, byte & ~SERIAL_MCR_DTR);
 	}
 	except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
 			EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
@@ -1029,8 +883,8 @@ SL_SetDTR(
 	try {
 		unsigned char byte;
 
-		byte = INB((PSER16550_INFO)pHead, pMCR);
-		OUTB((PSER16550_INFO)pHead, pMCR, byte | SERIAL_MCR_DTR);
+		byte = INL((PSER16550_INFO)pHead, pMCR);
+		OUTL((PSER16550_INFO)pHead, pMCR, byte | SERIAL_MCR_DTR);
 	}
 	except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
 			EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
@@ -1061,8 +915,8 @@ SL_ClearRTS(
 	try {
 		unsigned char byte;
 
-		byte = INB((PSER16550_INFO)pHead, pMCR);
-		OUTB((PSER16550_INFO)pHead, pMCR, byte & ~SERIAL_MCR_RTS);
+		byte = INL((PSER16550_INFO)pHead, pMCR);
+		OUTL((PSER16550_INFO)pHead, pMCR, byte & ~SERIAL_MCR_RTS);
 	}
 	except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
 			EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
@@ -1094,8 +948,8 @@ SL_SetRTS(
 	try {
 		unsigned char byte;
 
-		byte = INB((PSER16550_INFO)pHead, pMCR);
-		OUTB((PSER16550_INFO)pHead, pMCR, byte | SERIAL_MCR_RTS);
+		byte = INL((PSER16550_INFO)pHead, pMCR);
+		OUTL((PSER16550_INFO)pHead, pMCR, byte | SERIAL_MCR_RTS);
 	}
 	except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
 			EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
@@ -1160,8 +1014,8 @@ SL_ClearBreak(
 	try {
 		unsigned char byte;
 
-		byte = INB((PSER16550_INFO)pHead, pLCR);
-		OUTB((PSER16550_INFO)pHead, pLCR, byte & ~SERIAL_LCR_BREAK);
+		byte = INL((PSER16550_INFO)pHead, pLCR);
+		OUTL((PSER16550_INFO)pHead, pLCR, byte & ~SERIAL_LCR_BREAK);
 	}
 	except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
 			EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
@@ -1193,8 +1047,8 @@ SL_SetBreak(
 	try {
 		unsigned char byte;
 
-		byte = INB((PSER16550_INFO)pHead, pLCR);
-		OUTB((PSER16550_INFO)pHead, pLCR, byte | SERIAL_LCR_BREAK);
+		byte = INL((PSER16550_INFO)pHead, pLCR);
+		OUTL((PSER16550_INFO)pHead, pLCR, byte | SERIAL_LCR_BREAK);
 	}
 	except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
 			EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
@@ -1221,7 +1075,7 @@ SetBaudRate(
 {
 	PSER16550_INFO    pHWHead = (PSER16550_INFO)pHead;
 	InterruptMask(pHWHead->dwSysIntr,TRUE);
-	set_div(BaudRate);
+	set_div(pHWHead,BaudRate);
 	InterruptMask(pHWHead->dwSysIntr,FALSE);
 	return TRUE;
 }
@@ -1295,7 +1149,7 @@ SL_SetByteSize(
 
 	EnterCriticalSection(&(pHWHead->RegCritSec));
 	try {
-		lcr = INB(pHWHead, pLCR);
+		lcr = INL(pHWHead, pLCR);
 		lcr &= ~SERIAL_DATA_MASK;
 		switch ( ByteSize ) {
 			case 5:
@@ -1315,7 +1169,7 @@ SL_SetByteSize(
 				break;
 		}
 		if (bRet) {
-			OUTB(pHWHead, pLCR, lcr);
+			OUTL(pHWHead, pLCR, lcr);
 		}
 	}
 	except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
@@ -1353,7 +1207,7 @@ SL_SetParity(
 
 	EnterCriticalSection(&(pHWHead->RegCritSec));
 	try {
-		lcr = INB(pHWHead, pLCR);
+		lcr = INL(pHWHead, pLCR);
 		lcr &= ~SERIAL_PARITY_MASK;
 		switch ( Parity ) {
 			case ODDPARITY:
@@ -1380,7 +1234,7 @@ SL_SetParity(
 				break;
 		}
 		if (bRet) {
-			OUTB(pHWHead, pLCR, lcr);
+			OUTL(pHWHead, pLCR, lcr);
 		}
 	}
 	except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
@@ -1417,7 +1271,7 @@ SL_SetStopBits(
 	bRet = TRUE;
 
 	EnterCriticalSection(&(pHWHead->RegCritSec));
-	lcr = INB(pHWHead, pLCR);
+	lcr = INL(pHWHead, pLCR);
 	lcr &= ~SERIAL_STOP_MASK;
 
 	try {
@@ -1440,7 +1294,7 @@ SL_SetStopBits(
 		}
 
 		if (bRet) {
-			OUTB(pHWHead, pLCR, lcr);
+			OUTL(pHWHead, pLCR, lcr);
 		}
 	}
 	except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
@@ -1525,7 +1379,7 @@ SL_GetInterruptType(
 		}
 		else
 			try {
-				pHWHead->IIR = INB(pHWHead, pIIR_FCR);
+				pHWHead->IIR = INL(pHWHead, pIIR_FCR);
 			}
 		except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
 				EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
@@ -1654,7 +1508,7 @@ SL_RxIntr(
 				ReadLSR( pHWHead );
 				if ( pHWHead->LSR & SERIAL_LSR_DR ) {
 					// Read the byte
-					cRXChar = INB(pHWHead, pData);
+					cRXChar = INL(pHWHead, pData);
 					//NKDbgPrintfW(TEXT("%c"), cRXChar);
 				}
 				else
@@ -1743,10 +1597,10 @@ SL_TxIntrEx(
 			while (pHWHead->pXmitBuffer->dwFIFO_In!= pHWHead->pXmitBuffer->dwFIFO_Out) {
 				RETAILMSG(1,(TEXT("!!!SL_TxIntrEx: We found lost Xmit FIFO Data \r\n")));
 				pHWHead->pXmitBuffer->dwFIFO_In= pHWHead->pXmitBuffer->dwFIFO_Out;
-				OUTB(pHWHead, pIIR_FCR, pHWHead->FCR | SERIAL_FCR_TXMT_RESET);
+				OUTL(pHWHead, pIIR_FCR, pHWHead->FCR | SERIAL_FCR_TXMT_RESET);
 			}
 		}
-		OUTB(pHWHead, pIER, IER_NORMAL_INTS);
+		OUTL(pHWHead, pIER, IER_NORMAL_INTS);
 		return;
 	}
 
@@ -1783,8 +1637,8 @@ SL_TxIntrEx(
 						(TEXT("SL_TxIntrEx, flowed off via CTS\n") ) );
 				pHWHead->CTSFlowOff = TRUE;  // Record flowed off state
 				if (pHWHead->pIsrInfoVirt==NULL || pHWHead->pXmitBuffer==NULL || GetXmitDataSize(pHWHead->pXmitBuffer)==0)  {// no data inbuffer. 
-					byte = INB(pHWHead, pIER);
-					OUTB(pHWHead, pIER, byte & ~SERIAL_IER_THR); // disable TX interrupts while flowed off
+					byte = INL(pHWHead, pIER);
+					OUTL(pHWHead, pIER, byte & ~SERIAL_IER_THR); // disable TX interrupts while flowed off
 				}
 				// We could return a positive value here, which would
 				// cause the MDD to periodically check the flow control
@@ -1810,7 +1664,7 @@ SL_TxIntrEx(
 						(TEXT("SL_TxIntrEx, flowed off via DSR\n") ) );
 				pHWHead->DSRFlowOff = TRUE;  // Record flowed off state
 				if (pHWHead->pIsrInfoVirt==NULL || pHWHead->pXmitBuffer==NULL || GetXmitDataSize(pHWHead->pXmitBuffer)==0) { // no data inbuffer. 
-					OUTB(pHWHead, pIER, IER_NORMAL_INTS); // disable TX interrupts while flowed off
+					OUTL(pHWHead, pIER, IER_NORMAL_INTS); // disable TX interrupts while flowed off
 				}
 				// See the comment above above positive return codes.
 
@@ -1858,7 +1712,7 @@ SL_TxIntrEx(
 					++pTxBuffer;
 					(*pBufflen)++;
 					// Fill up the software ISR buffer.
-					OUTB(pHWHead, pIER, IER_NORMAL_INTS );
+					OUTL(pHWHead, pIER, IER_NORMAL_INTS );
 					while (GetXmitAvailableBuffer(pHWHead->pXmitBuffer)>min(pHWHead->pXmitBuffer->dwWaterMark,2) &&
 							NumberOfBytes) {
 						pHWHead->pXmitBuffer->bBuffer[pHWHead->pXmitBuffer->dwFIFO_In]=*pTxBuffer;
@@ -1868,14 +1722,14 @@ SL_TxIntrEx(
 						NumberOfBytes--;
 					}
 					DEBUGMSG (ZONE_WRITE, (TEXT("SL_TxIntrEx - Write %d bytes to FIFO\r\n"), (*pBufflen)));
-					OUTB(pHWHead, pData, bFirstByte);
-					OUTB(pHWHead, pIER, IER_NORMAL_INTS | SERIAL_IER_THR);
+					OUTL(pHWHead, pData, bFirstByte);
+					OUTL(pHWHead, pIER, IER_NORMAL_INTS | SERIAL_IER_THR);
 					pHWHead->bMoreXmitData=(NumberOfBytes==0?FALSE:TRUE);
 				}
 				else
 					for ( *pBufflen=0; NumberOfBytes && byteCount; NumberOfBytes--, byteCount-- ) {
 						DEBUGLED( ZONE_WRITE, (1, 0x10200000 | *pTxBuffer) );
-						OUTB(pHWHead, pData, *pTxBuffer);
+						OUTL(pHWHead, pData, *pTxBuffer);
 						InterruptDone(pHWHead->dwSysIntr);
 						++pTxBuffer;
 						(*pBufflen)++;
@@ -1886,7 +1740,7 @@ SL_TxIntrEx(
 		// since the MDD relies on one final interrupt before
 		// returning to the application. 
 		DEBUGMSG (ZONE_WRITE, (TEXT("SL_TxIntrEx: Enable INTR_TX.\r\n")));
-		OUTB(pHWHead, pIER, IER_NORMAL_INTS | SERIAL_IER_THR);
+		OUTL(pHWHead, pIER, IER_NORMAL_INTS | SERIAL_IER_THR);
 	}
 	except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
 			EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
@@ -1927,9 +1781,9 @@ SL_LineIntr(
 	ReadLSR( pHWHead );
 #pragma prefast(disable: 322, "Recover gracefully from hardware failure")
 	try {
-		OUTB(pHWHead, pIIR_FCR, pHWHead->FCR| SERIAL_FCR_RCVR_RESET ); // We have to reset Receive FIFO because it has error.
-		while (INB(pHWHead, pLSR) & SERIAL_LSR_DR ) {
-			INB(pHWHead, pData);
+		OUTL(pHWHead, pIIR_FCR, pHWHead->FCR| SERIAL_FCR_RCVR_RESET ); // We have to reset Receive FIFO because it has error.
+		while (INL(pHWHead, pLSR) & SERIAL_LSR_DR ) {
+			INL(pHWHead, pData);
 		}
 	}
 	except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
@@ -1970,7 +1824,7 @@ SL_OtherIntr(
 					(TEXT("PutBytes, flowed on via DSR\n") ) );
 			pHWHead->DSRFlowOff = FALSE;
 			// DSR is set, so go ahead and resume sending
-			OUTB(pHWHead, pIER, IER_NORMAL_INTS | SERIAL_IER_THR); // Enable xmit intr.
+			OUTL(pHWHead, pIER, IER_NORMAL_INTS | SERIAL_IER_THR); // Enable xmit intr.
 			// Then simulate a TX intr to get things moving
 			pHWHead->AddTXIntr = TRUE;
 		}
@@ -1979,7 +1833,7 @@ SL_OtherIntr(
 					(TEXT("PutBytes, flowed on via CTS\n") ) );
 			pHWHead->CTSFlowOff = FALSE;
 			// CTS is set, so go ahead and resume sending
-			OUTB(pHWHead, pIER, IER_NORMAL_INTS | SERIAL_IER_THR); // Enable xmit intr.
+			OUTL(pHWHead, pIER, IER_NORMAL_INTS | SERIAL_IER_THR); // Enable xmit intr.
 			// Then simulate a TX intr to get things moving
 			pHWHead->AddTXIntr = TRUE;
 		}
@@ -2088,7 +1942,7 @@ SL_Reset(
 	EnterCriticalSection(&(pHWHead->RegCritSec));
 #pragma prefast(disable: 322, "Recover gracefully from hardware failure")
 	try {
-		OUTB(pHWHead, pIER, IER_NORMAL_INTS);
+		OUTL(pHWHead, pIER, IER_NORMAL_INTS);
 	}
 	except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
 			EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
@@ -2161,24 +2015,19 @@ SL_GetCommProperties(PVOID pContext, COMMPROP *pCommProp)
 	pCommProp->dwServiceMask = SP_SERIALCOMM;
 	pCommProp->dwMaxTxQueue = 16;
 	pCommProp->dwMaxRxQueue = 16;
-	pCommProp->dwMaxBaud = BAUD_460800;
+	pCommProp->dwMaxBaud = BAUD_921600;
 	pCommProp->dwProvSubType = PST_RS232;
 
-	pCommProp->dwProvCapabilities = PCF_DTRDSR | PCF_INTTIMEOUTS | PCF_PARITY_CHECK | PCF_RLSD | 
-		PCF_RTSCTS | PCF_SETXCHAR | PCF_SPECIALCHARS | 
-		PCF_TOTALTIMEOUTS | PCF_XONXOFF;
+	pCommProp->dwProvCapabilities = PCF_INTTIMEOUTS |  PCF_SPECIALCHARS | PCF_TOTALTIMEOUTS;
 
-	pCommProp->dwSettableParams = SP_BAUD | SP_DATABITS | SP_HANDSHAKING | SP_PARITY |
-		SP_PARITY_CHECK | SP_RLSD | SP_STOPBITS;
+	pCommProp->dwSettableParams = SP_BAUD;
 
 	pCommProp->dwSettableBaud = BAUD_075 | BAUD_110 | BAUD_150 | BAUD_300 | BAUD_600 | BAUD_1200 | 
 		BAUD_1800 | BAUD_2400 | BAUD_4800 | BAUD_7200 | BAUD_9600 | BAUD_14400 |
-		BAUD_19200 | BAUD_38400 | BAUD_57600 | BAUD_115200 | BAUD_230400 | BAUD_460800;
-	pCommProp->wSettableData = DATABITS_5 | DATABITS_6 | DATABITS_7 | DATABITS_8;
+		BAUD_19200 | BAUD_38400 | BAUD_57600 | BAUD_115200 | BAUD_230400 | BAUD_460800 | BAUD_921600;
+	pCommProp->wSettableData = DATABITS_8;
 
-	pCommProp->wSettableStopParity = STOPBITS_10 | STOPBITS_20 |
-		PARITY_NONE | PARITY_ODD | PARITY_EVEN | PARITY_SPACE |
-		PARITY_MARK;
+	pCommProp->wSettableStopParity = STOPBITS_10 | PARITY_NONE;
 
 	DEBUGMSG(ZONE_FUNCTION, (L"-ser16550::SL_GetCommProper\n"));
 }
@@ -2209,16 +2058,16 @@ SL_PurgeComm(
 		// nor how RX interrupts would ever get turned back on.  I suspect that
 		// RXABORT and TXABORT would both be better implemented in the MDD.
 		if ( fdwAction & PURGE_RXABORT )
-			OUTB(pHWHead, pIER, IER_NORMAL_INTS & ~SERIAL_IER_RDA);
+			OUTL(pHWHead, pIER, IER_NORMAL_INTS & ~SERIAL_IER_RDA);
 #endif    
 		if ( fdwAction & PURGE_TXCLEAR ) {
 			// Write the TX reset bit.  It is self clearing
-			OUTB(pHWHead, pIIR_FCR, pHWHead->FCR | SERIAL_FCR_TXMT_RESET);
+			OUTL(pHWHead, pIIR_FCR, pHWHead->FCR | SERIAL_FCR_TXMT_RESET);
 		}
 
 		if ( fdwAction & PURGE_RXCLEAR ) {
 			// Write the RX reset bit.  It is self clearing
-			OUTB(pHWHead, pIIR_FCR, pHWHead->FCR | SERIAL_FCR_RCVR_RESET);
+			OUTL(pHWHead, pIIR_FCR, pHWHead->FCR | SERIAL_FCR_RCVR_RESET);
 		}
 	}
 	except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
@@ -2264,9 +2113,9 @@ SL_XmitComChar(
 				ReadLSR( pHWHead );
 				if ( pHWHead->LSR & SERIAL_LSR_THRE ) {
 					// FIFO is empty, send this character
-					OUTB(pHWHead, pData, ComChar);
+					OUTL(pHWHead, pData, ComChar);
 					// Make sure we release the register critical section
-					OUTB(pHWHead, pIER, IER_NORMAL_INTS | SERIAL_IER_THR);
+					OUTL(pHWHead, pIER, IER_NORMAL_INTS | SERIAL_IER_THR);
 					LeaveCriticalSection(&(pHWHead->RegCritSec));
 
 					DEBUGMSG (ZONE_WRITE, (TEXT("XmitComChar wrote x%X\r\n"),
@@ -2281,7 +2130,7 @@ SL_XmitComChar(
 					LeaveCriticalSection(&(pHWHead->RegCritSec));
 					DEBUGMSG (ZONE_WRITE, (TEXT("XmitComChar wrote x%X to Soft FIFO\r\n"),
 								ComChar));
-					OUTB(pHWHead, pIER, IER_NORMAL_INTS | SERIAL_IER_THR);
+					OUTL(pHWHead, pIER, IER_NORMAL_INTS | SERIAL_IER_THR);
 					LeaveCriticalSection(&(pHWHead->RegCritSec));
 					break;
 				}
@@ -2289,7 +2138,7 @@ SL_XmitComChar(
 			// TXINTR to come in and try it again.
 
 			// Enable xmit intr.
-			OUTB(pHWHead, pIER, IER_NORMAL_INTS | SERIAL_IER_THR);
+			OUTL(pHWHead, pIER, IER_NORMAL_INTS | SERIAL_IER_THR);
 			LeaveCriticalSection(&(pHWHead->RegCritSec));
 
 			// Wait until the txintr has signalled.
@@ -2330,16 +2179,16 @@ SL_PowerOff(
 	// Current FCR is already saved in a shadow
 
 	// Current IER is not normally shadowed, save it
-	pHWHead->IER = INB(pHWHead, pIER);
+	pHWHead->IER = INL(pHWHead, pIER);
 
 	// Current LCR is not normally shadowed, save it
-	pHWHead->LCR = INB(pHWHead, pLCR);
+	pHWHead->LCR = INL(pHWHead, pLCR);
 
 	// Current MCR is not normally shadowed, save it
-	pHWHead->MCR = INB(pHWHead, pMCR);
+	pHWHead->MCR = INL(pHWHead, pMCR);
 
 	// Current Scratch is not normally shadowed, save it
-	pHWHead->Scratch = INB(pHWHead, pScratch);
+	pHWHead->Scratch = INL(pHWHead, pScratch);
 
 	pHWHead->PowerDown = TRUE;
 	RETAILMSG(1, (TEXT("16550 SL_PowerOff\n")));
@@ -2364,11 +2213,11 @@ SL_PowerOn(
 		// Restore any registers that we need
 
 		// In power handler context, so don't try to do a critical section
-		OUTB(pHWHead, pIIR_FCR, pHWHead->FCR);
-		OUTB(pHWHead, pIER, pHWHead->IER);
-		OUTB(pHWHead, pLCR, pHWHead->LCR);
-		OUTB(pHWHead, pMCR, pHWHead->MCR);
-		OUTB(pHWHead, pScratch, pHWHead->Scratch);
+		OUTL(pHWHead, pIIR_FCR, pHWHead->FCR);
+		OUTL(pHWHead, pIER, pHWHead->IER);
+		OUTL(pHWHead, pLCR, pHWHead->LCR);
+		OUTL(pHWHead, pMCR, pHWHead->MCR);
+		OUTL(pHWHead, pScratch, pHWHead->Scratch);
 
 		pHWHead->PowerDown = FALSE;
 

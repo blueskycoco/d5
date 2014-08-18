@@ -58,26 +58,19 @@ typedef RcvDataBuffer;
     
     typedef struct __LS_SERIAL_INFO
     {
-         // Store volatile pointers to each 16550 register 
-        volatile PUCHAR pData;           // @field RX data / Transmit Holding Reg
-        volatile PUCHAR pIER;            // @field Interrupt Enable
-        volatile PUCHAR pIIR_FCR;        // @field read IIR (Int ID) / Write FCR (FIFO Ctrl)
-        volatile PUCHAR pLCR;            // @field Line Control
-        volatile PUCHAR pMCR;            // @field Modem Control
-        volatile PUCHAR pLSR;            // @field Line Status
-        volatile PUCHAR pMSR;            // @field Modem Status
-        volatile PUCHAR pScratch;        // @field Scratch Register
+        volatile PULONG pRData;           //receive fifo register
+        volatile PULONG  pTData;            //send fifo register
+        volatile PULONG pLevel;        //rx&tx level register
+        volatile PULONG pIir;            //interrupt status register
+        volatile PULONG pCr;            //uart control register
+        volatile PULONG pRcr;            //baud config resiger
 
-         // And we keep shadows of many of the 16550 registers
-        UCHAR		FCR;			// @field FIFO control state. 
-        UCHAR		IIR;			// @field State of Interrupt Identification Register. 
-        UCHAR		LSR;			// @field Line Status Register. 
-        UCHAR		MSR;			// @field Modem Status Register. 
-         // We wouldn't normally shadow these, except for power on/off
-        UCHAR		IER;			// @field Interrupt Enable Register. 
-        UCHAR		LCR;			// @field Line Control Register. 
-        UCHAR		MCR;			// @field Modem Control Register. 
-        UCHAR		Scratch;		// @field Scratch Register.
+        ULONG		RData;
+        ULONG		TData;
+        ULONG		Level;	
+        ULONG		Iir;	
+        ULONG		Cr;	
+        ULONG		Rcr;	
         
          // We have an event callback into the MDD
         EVENT_FUNC EventCallback; // This callback exists in MDD

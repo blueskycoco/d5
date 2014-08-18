@@ -103,8 +103,8 @@ the CS around all register accesses.
 // for 8BIT data bus
 #define CPU_REG_STRIDE		1
 
-#define INB(pInfo, reg) (READ_PORT_UCHAR((UCHAR *)((pInfo)->reg)))
-#define OUTB(pInfo, reg, value) (WRITE_PORT_UCHAR((UCHAR *)((pInfo)->reg), (unsigned char)(value)))
+#define INL(pInfo, reg) (READ_PORT_ULONG((ULONG *)((pInfo)->reg)))
+#define OUTL(pInfo, reg, value) (WRITE_PORT_ULONG((ULONG *)((pInfo)->reg), (unsigned long)(value)))
 
 
 //
@@ -178,7 +178,7 @@ ReadLSR(
 {
 
 	try {
-		pHWHead->LSR = INB(pHWHead, pLSR);
+		pHWHead->LSR = INL(pHWHead, pLSR);
 	}
 	except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
 			EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
@@ -224,10 +224,10 @@ ReadMSR(
 		PSER16550_INFO  pHWHead
 	   )
 {
-	UCHAR       msr;
+	ULONG       msr;
 
 	try {
-		msr = INB(pHWHead, pMSR);
+		msr = INL(pHWHead, pMSR);
 	}
 	except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
 			EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
@@ -249,7 +249,7 @@ DumpSerialRegisters(
 		PVOID  pHead
 		)
 {
-	UINT8 byte;
+	UINT32 byte;
 	PSER16550_INFO   pHWHead   = (PSER16550_INFO)pHead;
 
 
@@ -277,10 +277,10 @@ DumpSerialRegisters(
 			NKDbgPrintfW(TEXT("FIFOErr "));
 		NKDbgPrintfW(TEXT("\r\n"));
 
-		byte = INB(pHWHead, pData);
+		byte = INL(pHWHead, pData);
 		NKDbgPrintfW(TEXT("16550 rbr/thr:\t%2.2X\r\n"), byte);
 
-		byte = INB(pHWHead, pIER);
+		byte = INL(pHWHead, pIER);
 		NKDbgPrintfW(TEXT("16550 IER: \t%2.2X\t"), byte);
 		if ( byte & SERIAL_IER_RDA )
 			NKDbgPrintfW(TEXT("RXData "));
@@ -292,7 +292,7 @@ DumpSerialRegisters(
 			NKDbgPrintfW(TEXT("ModemStatus "));
 		NKDbgPrintfW(TEXT("\r\n"));
 
-		byte = INB(pHWHead, pIIR_FCR);
+		byte = INL(pHWHead, pIIR_FCR);
 		NKDbgPrintfW(TEXT("16550 iir: \t%2.2X\t"), byte);
 		if ( byte & SERIAL_IIR_RDA )
 			NKDbgPrintfW(TEXT("RXData "));
@@ -308,7 +308,7 @@ DumpSerialRegisters(
 			NKDbgPrintfW(TEXT("IntPending "));
 		NKDbgPrintfW(TEXT("\r\n"));
 
-		byte = INB(pHWHead, pLCR);
+		byte = INL(pHWHead, pLCR);
 		NKDbgPrintfW(TEXT("16550 lcr: \t%2.2X\t"), byte);
 
 		NKDbgPrintfW(TEXT("%dBPC "), ((byte & 0x03)+5) );
@@ -319,7 +319,7 @@ DumpSerialRegisters(
 			NKDbgPrintfW(TEXT("Break "));
 		NKDbgPrintfW(TEXT("\r\n"));
 
-		byte = INB(pHWHead, pMCR);
+		byte = INL(pHWHead, pMCR);
 		NKDbgPrintfW(TEXT("16550 mcr: \t%2.2X\t"), byte);
 		if ( byte & SERIAL_MCR_DTR )
 			NKDbgPrintfW(TEXT("DTR "));
@@ -413,20 +413,20 @@ ClearPendingInts(
 	EnterCriticalSection(&(pHWHead->RegCritSec));
 
 	try {
-		pHWHead->IIR = INB(pHWHead, pIIR_FCR); 
+		pHWHead->IIR = INL(pHWHead, pIIR_FCR); 
 		while ( ! (pHWHead->IIR & 0x01) ) {
 			DEBUGMSG (ZONE_INIT, (TEXT("!!IIR %X\r\n"), pHWHead->IIR));
 			// Reading LSR clears RLS interrupts.
 			ReadLSR( pHWHead );
 
 			// Reset RX FIFO to clear any old data remaining in it.
-			OUTB(pHWHead, pIIR_FCR, pHWHead->FCR | SERIAL_FCR_RCVR_RESET);
+			OUTL(pHWHead, pIIR_FCR, pHWHead->FCR | SERIAL_FCR_RCVR_RESET);
 
 			// Reading MSR clears Modem Status interrupt
 			ReadMSR( pHWHead );
 
 			// Simply reading IIR is sufficient to clear THRE
-			pHWHead->IIR = INB(pHWHead, pIIR_FCR);
+			pHWHead->IIR = INL(pHWHead, pIIR_FCR);
 		}    
 	}
 	except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
@@ -569,11 +569,11 @@ SL_Open(
 	EnterCriticalSection(&(pHWHead->RegCritSec));
 #pragma prefast(disable: 322, "Recover gracefully from hardware failure")
 	try {
-		OUTB(pHWHead, pIER, (UCHAR)IER_NORMAL_INTS);
-		OUTB(pHWHead, pMCR, SERIAL_MCR_IRQ_ENABLE);
+		OUTL(pHWHead, pIER, (ULONG)IER_NORMAL_INTS);
+		OUTL(pHWHead, pMCR, (ULONG)SERIAL_MCR_IRQ_ENABLE);
 
 		// Set default framing bits.
-		OUTB(pHWHead, pLCR, SERIAL_8_DATA | SERIAL_1_STOP | SERIAL_NONE_PARITY);
+		OUTL(pHWHead, pLCR, (ULONG)(SERIAL_8_DATA | SERIAL_1_STOP | SERIAL_NONE_PARITY));
 
 		DEBUGMSG (ZONE_OPEN,
 				(TEXT("SL_Open Setting DCB parameters\r\n")));
@@ -593,8 +593,8 @@ SL_Open(
 			// Shadow the FCR bitmask since reading this location is the IIR.
 			pHWHead->FCR = SERIAL_FCR_ENABLE | (BYTE)HighWaterPairs[WATERMAKER_ENTRY].Key;
 
-			OUTB(pHWHead, pIIR_FCR,
-					(pHWHead->FCR | SERIAL_FCR_RCVR_RESET | SERIAL_FCR_TXMT_RESET) );
+			OUTL(pHWHead, pIIR_FCR,
+					(ULONG)(pHWHead->FCR | SERIAL_FCR_RCVR_RESET | SERIAL_FCR_TXMT_RESET) );
 		}
 
 		// For CE 3.0, we are still supporting
@@ -649,10 +649,10 @@ SL_Close(
 	try {
 		// Disable all interrupts and clear MCR.
 
-		OUTB(pHWHead, pIER, (UCHAR)0); 
-		OUTB(pHWHead, pMCR, (UCHAR)0);
+		OUTL(pHWHead, pIER, (ULONG)0); 
+		OUTL(pHWHead, pMCR, (ULONG)0);
 
-		pHWHead->IIR   = INB(pHWHead, pIIR_FCR);        
+		pHWHead->IIR   = INL(pHWHead, pIIR_FCR);        
 	}
 	except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
 			EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
@@ -760,7 +760,7 @@ Ser_GetRegistryData(PSER_INFO pHWHead, LPCTSTR regKeyPath)
 	}
 
 	// Map physical memory
-	pHWHead->pBaseAddress = (PUCHAR)MmMapIoSpace(phBase, 8, FALSE);
+	pHWHead->pBaseAddress = (PUCHAR)MmMapIoSpace(phBase, 32, FALSE);
 
 	if (pHWHead->pBaseAddress == NULL) {
 		DEBUGMSG(ZONE_ERROR, (L" SL_Init - Failed map physical memory 0x%x\n", phBase.LowPart));
@@ -824,7 +824,7 @@ SL_Init2(
 	DumpSerialRegisters(pHWHead);
 
 	// Don't allow any interrupts till PostInit.
-	OUTB(pHWHead, pIER, (UCHAR)0);
+	OUTL(pHWHead, pIER, (ULONG)0);
 
 	InitializeCriticalSection(&(pHWHead->TransmitCritSec));
 	InitializeCriticalSection(&(pHWHead->RegCritSec));
@@ -995,10 +995,10 @@ SL_ClearDTR(
 	EnterCriticalSection(&(pHWHead->RegCritSec));
 #pragma prefast(disable: 322, "Recover gracefully from hardware failure")
 	try {
-		unsigned char byte;
+		unsigned long byte;
 
-		byte = INB((PSER16550_INFO)pHead, pMCR);
-		OUTB((PSER16550_INFO)pHead, pMCR, byte & ~SERIAL_MCR_DTR);
+		byte = INL((PSER16550_INFO)pHead, pMCR);
+		OUTL((PSER16550_INFO)pHead, pMCR, byte & ~SERIAL_MCR_DTR);
 	}
 	except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
 			EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
@@ -1027,10 +1027,10 @@ SL_SetDTR(
 	EnterCriticalSection(&(pHWHead->RegCritSec));
 #pragma prefast(disable: 322, "Recover gracefully from hardware failure")
 	try {
-		unsigned char byte;
+		unsigned long byte;
 
-		byte = INB((PSER16550_INFO)pHead, pMCR);
-		OUTB((PSER16550_INFO)pHead, pMCR, byte | SERIAL_MCR_DTR);
+		byte = INL((PSER16550_INFO)pHead, pMCR);
+		OUTL((PSER16550_INFO)pHead, pMCR, byte | SERIAL_MCR_DTR);
 	}
 	except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
 			EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
@@ -1059,10 +1059,10 @@ SL_ClearRTS(
 	EnterCriticalSection(&(pHWHead->RegCritSec));
 #pragma prefast(disable: 322, "Recover gracefully from hardware failure")
 	try {
-		unsigned char byte;
+		unsigned long byte;
 
-		byte = INB((PSER16550_INFO)pHead, pMCR);
-		OUTB((PSER16550_INFO)pHead, pMCR, byte & ~SERIAL_MCR_RTS);
+		byte = INL((PSER16550_INFO)pHead, pMCR);
+		OUTL((PSER16550_INFO)pHead, pMCR, byte & ~SERIAL_MCR_RTS);
 	}
 	except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
 			EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
@@ -1092,10 +1092,10 @@ SL_SetRTS(
 	EnterCriticalSection(&(pHWHead->RegCritSec));
 #pragma prefast(disable: 322, "Recover gracefully from hardware failure")
 	try {
-		unsigned char byte;
+		unsigned long byte;
 
-		byte = INB((PSER16550_INFO)pHead, pMCR);
-		OUTB((PSER16550_INFO)pHead, pMCR, byte | SERIAL_MCR_RTS);
+		byte = INL((PSER16550_INFO)pHead, pMCR);
+		OUTL((PSER16550_INFO)pHead, pMCR, byte | SERIAL_MCR_RTS);
 	}
 	except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
 			EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
@@ -1158,10 +1158,10 @@ SL_ClearBreak(
 	EnterCriticalSection(&(pHWHead->RegCritSec));
 #pragma prefast(disable: 322, "Recover gracefully from hardware failure")
 	try {
-		unsigned char byte;
+		unsigned long byte;
 
-		byte = INB((PSER16550_INFO)pHead, pLCR);
-		OUTB((PSER16550_INFO)pHead, pLCR, byte & ~SERIAL_LCR_BREAK);
+		byte = INL((PSER16550_INFO)pHead, pLCR);
+		OUTL((PSER16550_INFO)pHead, pLCR, byte & ~SERIAL_LCR_BREAK);
 	}
 	except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
 			EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
@@ -1191,10 +1191,10 @@ SL_SetBreak(
 	EnterCriticalSection(&(pHWHead->RegCritSec));
 #pragma prefast(disable: 322, "Recover gracefully from hardware failure")
 	try {
-		unsigned char byte;
+		unsigned long byte;
 
-		byte = INB((PSER16550_INFO)pHead, pLCR);
-		OUTB((PSER16550_INFO)pHead, pLCR, byte | SERIAL_LCR_BREAK);
+		byte = INL((PSER16550_INFO)pHead, pLCR);
+		OUTL((PSER16550_INFO)pHead, pLCR, byte | SERIAL_LCR_BREAK);
 	}
 	except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
 			EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
@@ -1285,7 +1285,7 @@ SL_SetByteSize(
 		)
 {
 	PSER16550_INFO    pHWHead = (PSER16550_INFO)pHead;
-	UINT8 lcr;
+	UINT32 lcr;
 	BOOL bRet;
 
 	DEBUGMSG (ZONE_FUNCTION,
@@ -1295,7 +1295,7 @@ SL_SetByteSize(
 
 	EnterCriticalSection(&(pHWHead->RegCritSec));
 	try {
-		lcr = INB(pHWHead, pLCR);
+		lcr = INL(pHWHead, pLCR);
 		lcr &= ~SERIAL_DATA_MASK;
 		switch ( ByteSize ) {
 			case 5:
@@ -1315,7 +1315,7 @@ SL_SetByteSize(
 				break;
 		}
 		if (bRet) {
-			OUTB(pHWHead, pLCR, lcr);
+			OUTL(pHWHead, pLCR, lcr);
 		}
 	}
 	except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
@@ -1343,7 +1343,7 @@ SL_SetParity(
 		)
 {
 	PSER16550_INFO    pHWHead = (PSER16550_INFO)pHead;
-	UINT8 lcr;
+	UINT32 lcr;
 	BOOL bRet;
 
 	DEBUGMSG (ZONE_FUNCTION,
@@ -1353,7 +1353,7 @@ SL_SetParity(
 
 	EnterCriticalSection(&(pHWHead->RegCritSec));
 	try {
-		lcr = INB(pHWHead, pLCR);
+		lcr = INL(pHWHead, pLCR);
 		lcr &= ~SERIAL_PARITY_MASK;
 		switch ( Parity ) {
 			case ODDPARITY:
@@ -1380,7 +1380,7 @@ SL_SetParity(
 				break;
 		}
 		if (bRet) {
-			OUTB(pHWHead, pLCR, lcr);
+			OUTL(pHWHead, pLCR, lcr);
 		}
 	}
 	except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
@@ -1408,7 +1408,7 @@ SL_SetStopBits(
 		)
 {
 	PSER16550_INFO    pHWHead = (PSER16550_INFO)pHead;
-	UINT8 lcr;
+	UINT32 lcr;
 	BOOL bRet;
 
 	DEBUGMSG (ZONE_FUNCTION,
@@ -1417,7 +1417,7 @@ SL_SetStopBits(
 	bRet = TRUE;
 
 	EnterCriticalSection(&(pHWHead->RegCritSec));
-	lcr = INB(pHWHead, pLCR);
+	lcr = INL(pHWHead, pLCR);
 	lcr &= ~SERIAL_STOP_MASK;
 
 	try {
@@ -1440,7 +1440,7 @@ SL_SetStopBits(
 		}
 
 		if (bRet) {
-			OUTB(pHWHead, pLCR, lcr);
+			OUTL(pHWHead, pLCR, lcr);
 		}
 	}
 	except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
@@ -1525,7 +1525,7 @@ SL_GetInterruptType(
 		}
 		else
 			try {
-				pHWHead->IIR = INB(pHWHead, pIIR_FCR);
+				pHWHead->IIR = INL(pHWHead, pIIR_FCR);
 			}
 		except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
 				EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
@@ -1654,7 +1654,7 @@ SL_RxIntr(
 				ReadLSR( pHWHead );
 				if ( pHWHead->LSR & SERIAL_LSR_DR ) {
 					// Read the byte
-					cRXChar = INB(pHWHead, pData);
+					cRXChar = (UCHAR)INL(pHWHead, pData);
 					//NKDbgPrintfW(TEXT("%c"), cRXChar);
 				}
 				else
@@ -1743,10 +1743,10 @@ SL_TxIntrEx(
 			while (pHWHead->pXmitBuffer->dwFIFO_In!= pHWHead->pXmitBuffer->dwFIFO_Out) {
 				RETAILMSG(1,(TEXT("!!!SL_TxIntrEx: We found lost Xmit FIFO Data \r\n")));
 				pHWHead->pXmitBuffer->dwFIFO_In= pHWHead->pXmitBuffer->dwFIFO_Out;
-				OUTB(pHWHead, pIIR_FCR, pHWHead->FCR | SERIAL_FCR_TXMT_RESET);
+				OUTL(pHWHead, pIIR_FCR, pHWHead->FCR | SERIAL_FCR_TXMT_RESET);
 			}
 		}
-		OUTB(pHWHead, pIER, IER_NORMAL_INTS);
+		OUTL(pHWHead, pIER, IER_NORMAL_INTS);
 		return;
 	}
 
@@ -1778,13 +1778,13 @@ SL_TxIntrEx(
 			// the MSR whenever CTS, DSR, TERI, or DCD change.
 
 			if (! (pHWHead->MSR & SERIAL_MSR_CTS) ) {
-				unsigned char byte;
+				unsigned long byte;
 				DEBUGMSG (ZONE_WRITE|ZONE_FLOW,
 						(TEXT("SL_TxIntrEx, flowed off via CTS\n") ) );
 				pHWHead->CTSFlowOff = TRUE;  // Record flowed off state
 				if (pHWHead->pIsrInfoVirt==NULL || pHWHead->pXmitBuffer==NULL || GetXmitDataSize(pHWHead->pXmitBuffer)==0)  {// no data inbuffer. 
-					byte = INB(pHWHead, pIER);
-					OUTB(pHWHead, pIER, byte & ~SERIAL_IER_THR); // disable TX interrupts while flowed off
+					byte = INL(pHWHead, pIER);
+					OUTL(pHWHead, pIER, byte & ~SERIAL_IER_THR); // disable TX interrupts while flowed off
 				}
 				// We could return a positive value here, which would
 				// cause the MDD to periodically check the flow control
@@ -1810,7 +1810,7 @@ SL_TxIntrEx(
 						(TEXT("SL_TxIntrEx, flowed off via DSR\n") ) );
 				pHWHead->DSRFlowOff = TRUE;  // Record flowed off state
 				if (pHWHead->pIsrInfoVirt==NULL || pHWHead->pXmitBuffer==NULL || GetXmitDataSize(pHWHead->pXmitBuffer)==0) { // no data inbuffer. 
-					OUTB(pHWHead, pIER, IER_NORMAL_INTS); // disable TX interrupts while flowed off
+					OUTL(pHWHead, pIER, IER_NORMAL_INTS); // disable TX interrupts while flowed off
 				}
 				// See the comment above above positive return codes.
 
@@ -1858,7 +1858,7 @@ SL_TxIntrEx(
 					++pTxBuffer;
 					(*pBufflen)++;
 					// Fill up the software ISR buffer.
-					OUTB(pHWHead, pIER, IER_NORMAL_INTS );
+					OUTL(pHWHead, pIER, IER_NORMAL_INTS );
 					while (GetXmitAvailableBuffer(pHWHead->pXmitBuffer)>min(pHWHead->pXmitBuffer->dwWaterMark,2) &&
 							NumberOfBytes) {
 						pHWHead->pXmitBuffer->bBuffer[pHWHead->pXmitBuffer->dwFIFO_In]=*pTxBuffer;
@@ -1868,14 +1868,14 @@ SL_TxIntrEx(
 						NumberOfBytes--;
 					}
 					DEBUGMSG (ZONE_WRITE, (TEXT("SL_TxIntrEx - Write %d bytes to FIFO\r\n"), (*pBufflen)));
-					OUTB(pHWHead, pData, bFirstByte);
-					OUTB(pHWHead, pIER, IER_NORMAL_INTS | SERIAL_IER_THR);
+					OUTL(pHWHead, pData, bFirstByte);
+					OUTL(pHWHead, pIER, IER_NORMAL_INTS | SERIAL_IER_THR);
 					pHWHead->bMoreXmitData=(NumberOfBytes==0?FALSE:TRUE);
 				}
 				else
 					for ( *pBufflen=0; NumberOfBytes && byteCount; NumberOfBytes--, byteCount-- ) {
 						DEBUGLED( ZONE_WRITE, (1, 0x10200000 | *pTxBuffer) );
-						OUTB(pHWHead, pData, *pTxBuffer);
+						OUTL(pHWHead, pData, *pTxBuffer);
 						InterruptDone(pHWHead->dwSysIntr);
 						++pTxBuffer;
 						(*pBufflen)++;
@@ -1886,7 +1886,7 @@ SL_TxIntrEx(
 		// since the MDD relies on one final interrupt before
 		// returning to the application. 
 		DEBUGMSG (ZONE_WRITE, (TEXT("SL_TxIntrEx: Enable INTR_TX.\r\n")));
-		OUTB(pHWHead, pIER, IER_NORMAL_INTS | SERIAL_IER_THR);
+		OUTL(pHWHead, pIER, IER_NORMAL_INTS | SERIAL_IER_THR);
 	}
 	except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
 			EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
@@ -1927,9 +1927,9 @@ SL_LineIntr(
 	ReadLSR( pHWHead );
 #pragma prefast(disable: 322, "Recover gracefully from hardware failure")
 	try {
-		OUTB(pHWHead, pIIR_FCR, pHWHead->FCR| SERIAL_FCR_RCVR_RESET ); // We have to reset Receive FIFO because it has error.
-		while (INB(pHWHead, pLSR) & SERIAL_LSR_DR ) {
-			INB(pHWHead, pData);
+		OUTL(pHWHead, pIIR_FCR, pHWHead->FCR| SERIAL_FCR_RCVR_RESET ); // We have to reset Receive FIFO because it has error.
+		while (INL(pHWHead, pLSR) & SERIAL_LSR_DR ) {
+			INL(pHWHead, pData);
 		}
 	}
 	except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ? EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
@@ -1970,7 +1970,7 @@ SL_OtherIntr(
 					(TEXT("PutBytes, flowed on via DSR\n") ) );
 			pHWHead->DSRFlowOff = FALSE;
 			// DSR is set, so go ahead and resume sending
-			OUTB(pHWHead, pIER, IER_NORMAL_INTS | SERIAL_IER_THR); // Enable xmit intr.
+			OUTL(pHWHead, pIER, IER_NORMAL_INTS | SERIAL_IER_THR); // Enable xmit intr.
 			// Then simulate a TX intr to get things moving
 			pHWHead->AddTXIntr = TRUE;
 		}
@@ -1979,7 +1979,7 @@ SL_OtherIntr(
 					(TEXT("PutBytes, flowed on via CTS\n") ) );
 			pHWHead->CTSFlowOff = FALSE;
 			// CTS is set, so go ahead and resume sending
-			OUTB(pHWHead, pIER, IER_NORMAL_INTS | SERIAL_IER_THR); // Enable xmit intr.
+			OUTL(pHWHead, pIER, IER_NORMAL_INTS | SERIAL_IER_THR); // Enable xmit intr.
 			// Then simulate a TX intr to get things moving
 			pHWHead->AddTXIntr = TRUE;
 		}
@@ -2088,7 +2088,7 @@ SL_Reset(
 	EnterCriticalSection(&(pHWHead->RegCritSec));
 #pragma prefast(disable: 322, "Recover gracefully from hardware failure")
 	try {
-		OUTB(pHWHead, pIER, IER_NORMAL_INTS);
+		OUTL(pHWHead, pIER, IER_NORMAL_INTS);
 	}
 	except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
 			EXCEPTION_EXECUTE_HANDLER : EXCEPTION_CONTINUE_SEARCH) {
@@ -2209,16 +2209,16 @@ SL_PurgeComm(
 		// nor how RX interrupts would ever get turned back on.  I suspect that
 		// RXABORT and TXABORT would both be better implemented in the MDD.
 		if ( fdwAction & PURGE_RXABORT )
-			OUTB(pHWHead, pIER, IER_NORMAL_INTS & ~SERIAL_IER_RDA);
+			OUTL(pHWHead, pIER, IER_NORMAL_INTS & ~SERIAL_IER_RDA);
 #endif    
 		if ( fdwAction & PURGE_TXCLEAR ) {
 			// Write the TX reset bit.  It is self clearing
-			OUTB(pHWHead, pIIR_FCR, pHWHead->FCR | SERIAL_FCR_TXMT_RESET);
+			OUTL(pHWHead, pIIR_FCR, pHWHead->FCR | SERIAL_FCR_TXMT_RESET);
 		}
 
 		if ( fdwAction & PURGE_RXCLEAR ) {
 			// Write the RX reset bit.  It is self clearing
-			OUTB(pHWHead, pIIR_FCR, pHWHead->FCR | SERIAL_FCR_RCVR_RESET);
+			OUTL(pHWHead, pIIR_FCR, pHWHead->FCR | SERIAL_FCR_RCVR_RESET);
 		}
 	}
 	except (GetExceptionCode() == EXCEPTION_ACCESS_VIOLATION ?
@@ -2264,9 +2264,9 @@ SL_XmitComChar(
 				ReadLSR( pHWHead );
 				if ( pHWHead->LSR & SERIAL_LSR_THRE ) {
 					// FIFO is empty, send this character
-					OUTB(pHWHead, pData, ComChar);
+					OUTL(pHWHead, pData, ComChar);
 					// Make sure we release the register critical section
-					OUTB(pHWHead, pIER, IER_NORMAL_INTS | SERIAL_IER_THR);
+					OUTL(pHWHead, pIER, IER_NORMAL_INTS | SERIAL_IER_THR);
 					LeaveCriticalSection(&(pHWHead->RegCritSec));
 
 					DEBUGMSG (ZONE_WRITE, (TEXT("XmitComChar wrote x%X\r\n"),
@@ -2281,7 +2281,7 @@ SL_XmitComChar(
 					LeaveCriticalSection(&(pHWHead->RegCritSec));
 					DEBUGMSG (ZONE_WRITE, (TEXT("XmitComChar wrote x%X to Soft FIFO\r\n"),
 								ComChar));
-					OUTB(pHWHead, pIER, IER_NORMAL_INTS | SERIAL_IER_THR);
+					OUTL(pHWHead, pIER, IER_NORMAL_INTS | SERIAL_IER_THR);
 					LeaveCriticalSection(&(pHWHead->RegCritSec));
 					break;
 				}
@@ -2289,7 +2289,7 @@ SL_XmitComChar(
 			// TXINTR to come in and try it again.
 
 			// Enable xmit intr.
-			OUTB(pHWHead, pIER, IER_NORMAL_INTS | SERIAL_IER_THR);
+			OUTL(pHWHead, pIER, IER_NORMAL_INTS | SERIAL_IER_THR);
 			LeaveCriticalSection(&(pHWHead->RegCritSec));
 
 			// Wait until the txintr has signalled.
@@ -2330,16 +2330,16 @@ SL_PowerOff(
 	// Current FCR is already saved in a shadow
 
 	// Current IER is not normally shadowed, save it
-	pHWHead->IER = INB(pHWHead, pIER);
+	pHWHead->IER = INL(pHWHead, pIER);
 
 	// Current LCR is not normally shadowed, save it
-	pHWHead->LCR = INB(pHWHead, pLCR);
+	pHWHead->LCR = INL(pHWHead, pLCR);
 
 	// Current MCR is not normally shadowed, save it
-	pHWHead->MCR = INB(pHWHead, pMCR);
+	pHWHead->MCR = INL(pHWHead, pMCR);
 
 	// Current Scratch is not normally shadowed, save it
-	pHWHead->Scratch = INB(pHWHead, pScratch);
+	pHWHead->Scratch = INL(pHWHead, pScratch);
 
 	pHWHead->PowerDown = TRUE;
 	RETAILMSG(1, (TEXT("16550 SL_PowerOff\n")));
@@ -2364,11 +2364,11 @@ SL_PowerOn(
 		// Restore any registers that we need
 
 		// In power handler context, so don't try to do a critical section
-		OUTB(pHWHead, pIIR_FCR, pHWHead->FCR);
-		OUTB(pHWHead, pIER, pHWHead->IER);
-		OUTB(pHWHead, pLCR, pHWHead->LCR);
-		OUTB(pHWHead, pMCR, pHWHead->MCR);
-		OUTB(pHWHead, pScratch, pHWHead->Scratch);
+		OUTL(pHWHead, pIIR_FCR, pHWHead->FCR);
+		OUTL(pHWHead, pIER, pHWHead->IER);
+		OUTL(pHWHead, pLCR, pHWHead->LCR);
+		OUTL(pHWHead, pMCR, pHWHead->MCR);
+		OUTL(pHWHead, pScratch, pHWHead->Scratch);
 
 		pHWHead->PowerDown = FALSE;
 
