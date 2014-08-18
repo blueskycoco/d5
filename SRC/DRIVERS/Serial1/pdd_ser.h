@@ -192,25 +192,17 @@ public:
     virtual ~CReg2450Uart() { ; };
     virtual BOOL    Init() ;
     // We do not virtual Read & Write data because of Performance Concern.
-    void    Write_ULCON(ULONG uData) { WRITE_REGISTER_ULONG( m_pReg, (uData)); };
-    ULONG   Read_ULCON() { return (READ_REGISTER_ULONG(m_pReg)); } ;
-    void    Write_UCON (ULONG uData) { WRITE_REGISTER_ULONG(m_pReg+1 , uData); };
-    ULONG   Read_UCON() { return READ_REGISTER_ULONG(m_pReg+1 ); };
-    void    Write_UFCON(ULONG uData) { WRITE_REGISTER_ULONG( m_pReg+2, uData);};
-    ULONG   Read_UFCON() { return READ_REGISTER_ULONG(m_pReg + 2); };
-    void    Write_UMCON(ULONG uData) { WRITE_REGISTER_ULONG(m_pReg + 3, uData);};
-    ULONG   Read_UMCON() { return READ_REGISTER_ULONG(m_pReg + 3);};
-    ULONG   Read_UTRSTAT() { return READ_REGISTER_ULONG(m_pReg + 4);};
-    ULONG   Read_UERSTAT() { return READ_REGISTER_ULONG(m_pReg + 5);};
-    ULONG   Read_UFSTAT() { return READ_REGISTER_ULONG(m_pReg + 6);};
-    ULONG   Read_UMSTAT() { return READ_REGISTER_ULONG(m_pReg + 7);};
-    void    Write_UTXH (UINT8 uData) { WRITE_REGISTER_ULONG( (m_pReg + 8), uData) ; };
-    UINT8   Read_URXH() { return (UINT8) READ_REGISTER_ULONG(m_pReg + 9); };
-    void    Write_UBRDIV(ULONG uData) { WRITE_REGISTER_ULONG( m_pReg + 10, uData );};
-    ULONG   Read_UBRDIV() { return READ_REGISTER_ULONG(m_pReg + 10); };
-    void    Write_UDIVSLOT(ULONG uData) { WRITE_REGISTER_ULONG( (m_pReg + 11), uData) ; };
-    ULONG    Read_UDIVSLOT() { return READ_REGISTER_ULONG(m_pReg + 11); };
-
+    void    Write_DATA(ULONG uData) { WRITE_REGISTER_ULONG( m_pReg, (uData)); };
+    ULONG   Read_DATA() { return (READ_REGISTER_ULONG(m_pReg)); } ;
+    void    Write_LEVEL (ULONG uData) { WRITE_REGISTER_ULONG(m_pReg+1 , uData); };
+    ULONG   Read_LEVEL() { return READ_REGISTER_ULONG(m_pReg+1 ); };
+    void    Write_IIR(ULONG uData) { WRITE_REGISTER_ULONG( m_pReg+2, uData);};
+    ULONG   Read_IIR() { return READ_REGISTER_ULONG(m_pReg + 2); };
+    void    Write_CTL(ULONG uData) { WRITE_REGISTER_ULONG(m_pReg + 3, uData);};
+    ULONG   Read_CTL() { return READ_REGISTER_ULONG(m_pReg + 3);};
+    ULONG   Read_RCTL() { return READ_REGISTER_ULONG(m_pReg + 4);};
+    ULONG   Read_RCTL() { return READ_REGISTER_ULONG(m_pReg + 5);};
+    
     virtual BOOL    Write_BaudRate(ULONG uData);
     PULONG  GetRegisterVirtualAddr() { return m_pReg; };
     virtual void    Backup();
