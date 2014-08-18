@@ -18,12 +18,12 @@ Module Name:
 
 Abstract:
 
-    Platform dependent Serial definitions for S3C2450 UART  controller.
+    Platform dependent Serial definitions for S3C3250 UART  controller.
 
 Notes: 
 --*/
-#ifndef __PDDS3C2450_SER_H_
-#define __PDDS3C2450_SER_H_
+#ifndef __PDDS3C3250_SER_H_
+#define __PDDS3C3250_SER_H_
 //#define    DEBUG
 #include <cserpdd.h>
 #include <cmthread.h>
@@ -93,30 +93,30 @@ typedef struct {
 } UART_REGS_T;
 
 /////////////////////////////////////////////////////////////////////////////////////////
-//// S3C2450 UART Register
+//// S3C3250 UART Register
 
 ///////++ UART CONTROL REGISTER ++
 // Line control register bitvalue mask
-#define SER2450_PARITY_MASK     0x38
-#define SER2450_STOPBIT_MASK    0x4
-#define SER2450_DATABIT_MASK    0x3
-#define SER2450_IRMODE_MASK     0x40
+#define SER3250_PARITY_MASK     0x38
+#define SER3250_STOPBIT_MASK    0x4
+#define SER3250_DATABIT_MASK    0x3
+#define SER3250_IRMODE_MASK     0x40
 
 // Fifo Status
-#define SER2450_FIFOSTAT_MASK   0xf0
+#define SER3250_FIFOSTAT_MASK   0xf0
 
 //
-#define SER2450_FIFOFULL_TX     0x200
-#define SER2450_FIFOCNT_MASK_TX 0xf0
-#define SER2450_FIFO_DEPTH_TX 64
-#define SER2450_FIFO_DEPTH_RX 64
+#define SER3250_FIFOFULL_TX     0x200
+#define SER3250_FIFOCNT_MASK_TX 0xf0
+#define SER3250_FIFO_DEPTH_TX 64
+#define SER3250_FIFO_DEPTH_RX 64
 
 //
-#define SER2450_INT_INVALID     0x5a5affff
+#define SER3250_INT_INVALID     0x5a5affff
 /*
 // Modem control register
-#define SER2450_AFC           (0x10)
-#define SER2450_RTS           0x1
+#define SER3250_AFC           (0x10)
+#define SER3250_RTS           0x1
 //Receive Mode
 #define RX_MODE_MASK          (0x3)
 #define RX_DISABLE            (0x0)
@@ -166,14 +166,14 @@ typedef struct {
 
 /////////////////////////////////////////////////////////////////////////////////////////
 // Required Registry Setting.
-#define PC_REG_2450UART_INTBIT_VAL_NAME TEXT("InterruptBitsShift")
-#define PC_REG_2450UART_INTBIT_VAL_LEN sizeof(DWORD)
-#define PC_REG_2450UART_IST_TIMEOUTS_VAL_NAME TEXT("ISTTimeouts")
-#define PC_REG_2450UART_IST_TIMEOUTS_VAL_LEN sizeof(DWORD)
+#define PC_REG_3250UART_INTBIT_VAL_NAME TEXT("InterruptBitsShift")
+#define PC_REG_3250UART_INTBIT_VAL_LEN sizeof(DWORD)
+#define PC_REG_3250UART_IST_TIMEOUTS_VAL_NAME TEXT("ISTTimeouts")
+#define PC_REG_3250UART_IST_TIMEOUTS_VAL_LEN sizeof(DWORD)
 /////////////////////////////////////////////////////////////////////////////////////////
-#define S2450UART_INT_RXD 1
-#define S2450UART_INT_TXD 2
-#define S2450UART_INT_ERR 4
+#define S3250UART_INT_RXD 1
+#define S3250UART_INT_TXD 2
+#define S3250UART_INT_ERR 4
 ////////////////////////////////////////////////////////////////////////////////////////
 // WaterMarker Pairs.
 typedef struct  __PAIRS {
@@ -186,22 +186,21 @@ static const UINT UDIVSLOT_TABLE[16] = {
         0x5555, 0xD555, 0xD5D5, 0xDDD5, 0xDDDD, 0xDFDD, 0xDFDF, 0xFFDF
 };
 
- class CReg2450Uart {
+ class CReg3250Uart {
 public:
-    CReg2450Uart(PULONG pRegAddr);
-    virtual ~CReg2450Uart() { ; };
+    CReg3250Uart(PULONG pRegAddr);
+    virtual ~CReg3250Uart() { ; };
     virtual BOOL    Init() ;
     // We do not virtual Read & Write data because of Performance Concern.
     void    Write_DATA(ULONG uData) { WRITE_REGISTER_ULONG( m_pReg, (uData)); };
     ULONG   Read_DATA() { return (READ_REGISTER_ULONG(m_pReg)); } ;
-    void    Write_LEVEL (ULONG uData) { WRITE_REGISTER_ULONG(m_pReg+1 , uData); };
     ULONG   Read_LEVEL() { return READ_REGISTER_ULONG(m_pReg+1 ); };
     void    Write_IIR(ULONG uData) { WRITE_REGISTER_ULONG( m_pReg+2, uData);};
     ULONG   Read_IIR() { return READ_REGISTER_ULONG(m_pReg + 2); };
     void    Write_CTL(ULONG uData) { WRITE_REGISTER_ULONG(m_pReg + 3, uData);};
     ULONG   Read_CTL() { return READ_REGISTER_ULONG(m_pReg + 3);};
     ULONG   Read_RCTL() { return READ_REGISTER_ULONG(m_pReg + 4);};
-    ULONG   Read_RCTL() { return READ_REGISTER_ULONG(m_pReg + 5);};
+    ULONG   Write_RCTL(ULONG uData) { return WRITE_REGISTER_ULONG(m_pReg + 4,uData);};
     
     virtual BOOL    Write_BaudRate(ULONG uData);
     PULONG  GetRegisterVirtualAddr() { return m_pReg; };
@@ -214,27 +213,23 @@ protected:
     volatile PULONG const  m_pReg;
     BOOL    m_fIsBackedUp;
 private:
-    ULONG    m_ULCONBackup;
-    ULONG    m_UCONBackup;
-    ULONG    m_UFCONBackup;
-    ULONG    m_UMCOMBackup;
-    ULONG    m_UBRDIVBackup;
-        ULONG         m_UDIVSLOTBackup;
+    ULONG    m_IirBackup;
+    ULONG    m_CtlBackup;
+    ULONG    m_RctlBackup;
     
     ULONG    m_BaudRate;
-    ULONG    m_s3c2450_pclk;
 };
-class CPdd2450Uart: public CSerialPDD, public CMiniThread  {
+class CPdd3250Uart: public CSerialPDD, public CMiniThread  {
 public:
-    CPdd2450Uart (LPTSTR lpActivePath, PVOID pMdd, PHWOBJ pHwObj);
-    virtual ~CPdd2450Uart();
+    CPdd3250Uart (LPTSTR lpActivePath, PVOID pMdd, PHWOBJ pHwObj);
+    virtual ~CPdd3250Uart();
     virtual BOOL Init();
     virtual void PostInit();
     virtual BOOL MapHardware();
     virtual BOOL CreateHardwareAccess();
 //  Power Manager Required Function.
-    virtual void    SerialRegisterBackup() { m_pReg2450Uart->Backup(); };
-    virtual void    SerialRegisterRestore() { m_pReg2450Uart->Restore(); };
+    virtual void    SerialRegisterBackup() { m_pReg3250Uart->Backup(); };
+    virtual void    SerialRegisterRestore() { m_pReg3250Uart->Restore(); };
 
 // Implement CPddSerial Function.
 // Interrupt
@@ -288,22 +283,25 @@ public:
     virtual void    SetOutputMode(BOOL UseIR, BOOL Use9Pin) ;
 
 protected:
-    CReg2450Uart *  m_pReg2450Uart;
+    CReg3250Uart *  m_pReg3250Uart;
     PVOID           m_pRegVirtualAddr;
 
-    volatile S3C2450_INTR_REG   * m_pINTregs;    
+    //volatile S3C3250_INTR_REG   * m_pINTregs;    
     DWORD           m_dwIntShift;
 public:
     void    DisableInterrupt(DWORD dwInt) { 
-        m_pINTregs->INTSUBMSK |= (dwInt<<m_dwIntShift);
+        //m_pINTregs->INTSUBMSK |= (dwInt<<m_dwIntShift);
+        Write_CTL(Read_CTL()&(~dwInt));
     }
     void    EnableInterrupt(DWORD dwInt) { 
-        m_pINTregs->INTSUBMSK &= ~(dwInt<<m_dwIntShift);
+        //m_pINTregs->INTSUBMSK &= ~(dwInt<<m_dwIntShift);
+        Write_CTL(Read_CTL()|dwInt);
     }
     void    ClearInterrupt(DWORD dwInt) {
-        m_pINTregs->SUBSRCPND = (dwInt<<m_dwIntShift);
+        //m_pINTregs->SUBSRCPND = (dwInt<<m_dwIntShift);
+        Write_IIR(dwInt);
     }
-    DWORD   GetInterruptStatus() { return ((m_pINTregs->SUBSRCPND) >> m_dwIntShift);};
+    DWORD   GetInterruptStatus() { return (Read_IIR();};
     DWORD   GetIntrruptMask () { return ((~(m_pINTregs->INTSUBMSK) )>> m_dwIntShift); };
     
 protected:

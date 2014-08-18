@@ -1,6 +1,6 @@
 ; @CESYSGEN IF COREDLL_SERDEV
 [HKEY_LOCAL_MACHINE\Drivers\BuiltIn\Serial]
-   "DeviceArrayIndex"=dword:0
+   "DeviceArrayIndex"=dword:1
    "Irq"=dword:1a
    "MemBase"=dword:40014000
    "MemLen"=dword:18 ;; 2c

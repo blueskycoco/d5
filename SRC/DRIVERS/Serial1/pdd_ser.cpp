@@ -31,11 +31,12 @@ Notes:
 #include <ddkreg.h>
 #include <serhw.h>
 #include <Serdbg.h>
+#include "pdd_ser.h"
 //#include <pdds3c3250_ser.h>
 //#include <s3c3250_base_regs.h>
 
 #define    EPLL_CLK    0
-
+#define FIFO_READ_LIMIT 128
 /*
 #define DEBUG
 #define ZONE_THREAD    2
@@ -46,28 +47,14 @@ CReg3250Uart::CReg3250Uart(PULONG pRegAddr)
 :   m_pReg(pRegAddr)
 {
     m_fIsBackedUp = FALSE;
-//    PROCESSOR_INFO procInfo;
-//    DWORD dwBytesReturned;
-//    if (!KernelIoControl(IOCTL_PROCESSOR_INFORMATION, NULL, 0, &procInfo, sizeof(PROCESSOR_INFO), &dwBytesReturned))
-//    {
-        m_s3c3250_pclk = S3C3250_PCLK;//DEFAULT_S3C3250_PCLK; 
-        //RETAILMSG(TRUE, (TEXT("WARNING: CReg3250Uart::CReg3250Uart failed to obtain processor frequency - using default value (%d).\r\n"), m_s3c3250_pclk)); 
-//    }
-//    else
-//    {
-//        m_s3c3250_pclk = procInfo.dwClockSpeed;
-//        RETAILMSG(TRUE, (TEXT("INFO: CReg3250Uart::CReg3250Uart using processor frequency reported by the OAL (%d).\r\n"), m_s3c3250_pclk)); 
-//    }
-
 }
 BOOL   CReg3250Uart::Init() 
 {
 
     if (m_pReg) { // Set Value to default.
-        Write_ULCON(0);
-        Write_UCON(0);
-        Write_UFCON(0);
-        Write_UMCON(0);
+        Write_IIR(0);
+        Write_CTL(0);
+        Write_RCTL(0);
         return TRUE;
     }
     else
@@ -77,64 +64,57 @@ BOOL   CReg3250Uart::Init()
 void CReg3250Uart::Backup()
 {
     m_fIsBackedUp = TRUE;
-    m_ULCONBackup = Read_ULCON();
-    m_UCONBackup = Read_UCON();
-    m_UFCONBackup = Read_UFCON();
-    m_UMCOMBackup = Read_UMCON();
-    m_UBRDIVBackup = Read_UBRDIV();    
-        m_UDIVSLOTBackup = Read_UDIVSLOT();
+    m_IirBackup = Read_IIR();
+    m_CtlBackup = Read_CTL();
+    m_RctlBackup = Read_RCTL();
 }
 void CReg3250Uart::Restore()
 {
     if (m_fIsBackedUp) {
-        Write_ULCON(m_ULCONBackup );
-        Write_UCON( m_UCONBackup );
-        Write_UFCON( m_UFCONBackup );
-        Write_UMCON( m_UMCOMBackup );
-        Write_UBRDIV( m_UBRDIVBackup);
-                Write_UDIVSLOT( m_UDIVSLOTBackup );
+        Write_CTL(m_CtlBackup );
+        Write_IIR( m_IirBackup );
+        Write_RCTL( m_RctlBackup );
         m_fIsBackedUp = FALSE;
     }
 }
 CReg3250Uart::Write_BaudRate(ULONG BaudRate)
 {
-        DOUBLE Div_val;
-        UINT UDIVSLOTn = 0;
-        UINT UBRDIV = 0;
-    DEBUGMSG(ZONE_INIT, (TEXT("SetBaudRate -> %d\r\n"), BaudRate));
+	UINT32 basepclk;
+	UINT32 div, goodrate, hsu_rate, l_hsu_rate, comprate;
+	UINT32 rate_diff;
+    	RETAILMSG(1, (TEXT("SetBaudRate -> %d\r\n"), BaudRate));
 
-    if ( (Read_UCON() & CS_MASK) == CS_PCLK ) {
-        Div_val = (m_s3c3250_pclk/16.0/BaudRate);
-        UBRDIV = (int)Div_val - 1;
-        Write_UBRDIV( UBRDIV );
-        UDIVSLOTn = (int)( (Div_val - (int)Div_val) * 16);
-        Write_UDIVSLOT( UDIVSLOT_TABLE[UDIVSLOTn] );
-        RETAILMSG( true , (TEXT("CLK:%d, BaudRate:%d, UBRDIV:%d, UDIVSLOTn:%d\r\n"), m_s3c3250_pclk, BaudRate, UBRDIV, UDIVSLOTn));
-        return TRUE;
-    }
-   else if( (Read_UCON() & CS_MASK) == (3 << 10) )
-   {
-        Div_val = (S3C3250_SCLK/16.0/BaudRate);
-        UBRDIV = (int)Div_val - 1;
-        Write_UBRDIV( UBRDIV );
-        UDIVSLOTn = (int)( (Div_val - (int)Div_val) * 16);
-        Write_UDIVSLOT( UDIVSLOT_TABLE[UDIVSLOTn] );
-        RETAILMSG( TRUE , (TEXT("CLK:%d, BaudRate:%d, UBRDIV:%d, UDIVSLOTn:%d\r\n"), S3C3250_SCLK, BaudRate, UBRDIV, UDIVSLOTn));
-        return TRUE;
-   }
-    else {
-        // TODO: Support external UART clock.
-        //OUTREG(pHWHead,UBRDIV,( (int)(S3250UCLK/16.0/BaudRate) -1 ));
-        RETAILMSG(TRUE, (TEXT("ERROR: The s3c3250a serial driver doesn't support an external UART clock.\r\n")));
-        ASSERT(FALSE);
-        return(FALSE);
-    }
+	// Get base clock for UART
+	basepclk = (INT32)(clkpwr_get_base_clock_rate(CLKPWR_PERIPH_CLK) >> 4);
+
+	/* Find the closest divider to get the desired clock rate */
+	div = basepclk / BaudRate;
+	goodrate = hsu_rate = (div / 14) - 1;
+	if (hsu_rate != 0)
+		hsu_rate--;
+
+	/* Tweak divider */
+	l_hsu_rate = hsu_rate + 3;
+	rate_diff = 0xFFFFFFFF;
+
+	while (hsu_rate < l_hsu_rate) {
+		comprate = basepclk / ((hsu_rate + 1) * 14);
+		if (abs(comprate - BaudRate) < rate_diff) {
+			goodrate = hsu_rate;
+			rate_diff = abs(comprate - BaudRate);
+		}
+
+		hsu_rate++;
+	}
+	if (hsu_rate > 0xFF)
+		hsu_rate = 0xFF;
+	Write_RCTL(goodrate);
 }
 #ifdef DEBUG
 void CReg3250Uart::DumpRegister()
 {
-    NKDbgPrintfW(TEXT("DumpRegister (ULCON=%x, UCON=%x, UFCON=%x, UMCOM = %x, UBDIV =%x)\r\n"),
-        Read_ULCON(),Read_UCON(),Read_UFCON(),Read_UMCON(),Read_UBRDIV());
+    NKDbgPrintfW(TEXT("DumpRegister (CTL=%x, RCTL=%x, LEVEL=%x, IIR = %x, DATA =%x)\r\n"),
+        Read_CTL(),Read_RCTL(),Read_LEVEL(),Read_IIR(),Read_DATA());
     
 }
 #endif
@@ -145,8 +125,8 @@ CPdd3250Uart::CPdd3250Uart (LPTSTR lpActivePath, PVOID pMdd, PHWOBJ pHwObj )
 ,   CMiniThread (0, TRUE)   
 {
     m_pReg3250Uart = NULL;
-    m_pINTregs = NULL;
-    m_dwIntShift = 0;
+//    m_pINTregs = NULL;
+//    m_dwIntShift = 0;
     m_dwSysIntr = MAXDWORD;
     m_hISTEvent = NULL;
     m_dwDevIndex = 0;
@@ -173,9 +153,9 @@ CPdd3250Uart::~CPdd3250Uart()
     if (m_pRegVirtualAddr != NULL) {
         MmUnmapIoSpace((PVOID)m_pRegVirtualAddr,0UL);
     }
-    if (m_pINTregs!=NULL) {
-        MmUnmapIoSpace((PVOID)m_pINTregs,0UL);
-    }
+    //if (m_pINTregs!=NULL) {
+    //    MmUnmapIoSpace((PVOID)m_pINTregs,0UL);
+    //}
         
 }
 BOOL CPdd3250Uart::Init()
@@ -228,7 +208,7 @@ BOOL CPdd3250Uart::MapHardware()
     if ( GetWindowInfo( &dwi)!=ERROR_SUCCESS || 
             dwi.dwNumMemWindows < 1 || 
             dwi.memWindows[0].dwBase == 0 || 
-            dwi.memWindows[0].dwLen < 0x30) //0x2c)
+            dwi.memWindows[0].dwLen < 0x10) //0x2c)
         return FALSE;
     DWORD dwInterfaceType;
     if (m_ActiveReg.IsKeyOpened() && 
@@ -243,13 +223,7 @@ BOOL CPdd3250Uart::MapHardware()
         // Map it if it is Memeory Mapped IO.
         m_pRegVirtualAddr = MmMapIoSpace(ioPhysicalBase, dwi.memWindows[0].dwLen,FALSE);
     }
-    ioPhysicalBase.LowPart = S3C3250_BASE_REG_PA_INTR ;
-    ioPhysicalBase.HighPart = 0;
-    inIoSpace = 0; 
-    if (TranslateBusAddr(m_hParent,(INTERFACE_TYPE)dwi.dwInterfaceType,dwi.dwBusNumber, ioPhysicalBase,&inIoSpace,&ioPhysicalBase)) {
-        m_pINTregs = (S3C3250_INTR_REG *) MmMapIoSpace(ioPhysicalBase,sizeof(S3C3250_INTR_REG),FALSE);
-    }
-    return (m_pRegVirtualAddr!=NULL && m_pINTregs!=NULL);
+    return (m_pRegVirtualAddr!=NULL);
 }
 BOOL CPdd3250Uart::CreateHardwareAccess()
 {
@@ -266,21 +240,31 @@ BOOL CPdd3250Uart::CreateHardwareAccess()
     return (m_pReg3250Uart!=NULL);
 }
 #define MAX_RETRY 0x1000
+void CPdd3250Uart::__serial_uart_flush()
+{
+	UINT32 tmp;
+	int cnt = 0;
+
+	while ((m_pReg3250Uart->Read_LEVEL() > 0) &&
+		(cnt++ < FIFO_READ_LIMIT))
+		tmp = m_pReg3250Uart->Read_DATA() ;
+}
 void CPdd3250Uart::PostInit()
 {
     DWORD dwCount=0;
     m_HardwareLock.Lock();
-    m_pReg3250Uart->Write_UCON(0); // Set to Default;
-    DisableInterrupt(S3250UART_INT_RXD | S3250UART_INT_TXD | S3250UART_INT_ERR);
+    __serial_uart_flush();
+    m_pReg3250Uart->Write_CTL(0); // Set to Default;
+    DisableInterrupt(LPC32XX_HSU_RX_INT_EN | LPC32XX_HSU_TX_INT_EN | LPC32XX_HSU_ERR_INT_EN);
     // Mask all interrupt.
-    while ((GetInterruptStatus() & (S3250UART_INT_RXD | S3250UART_INT_TXD | S3250UART_INT_ERR))!=0 && 
+    while ((GetInterruptStatus() & (LPC32XX_HSU_TX_INT | LPC32XX_HSU_FE_INT|LPC32XX_HSU_BRK_INT|LPC32XX_HSU_RX_OE_INT))!=0 && 
             dwCount <MAX_RETRY) { // Interrupt.
         InitReceive(TRUE);
         InitLine(TRUE);
-        ClearInterrupt(S3250UART_INT_RXD | S3250UART_INT_TXD | S3250UART_INT_ERR);
+        ClearInterrupt(LPC32XX_HSU_TX_INT | LPC32XX_HSU_FE_INT|LPC32XX_HSU_BRK_INT|LPC32XX_HSU_RX_OE_INT);
         dwCount++;
     }
-    ASSERT((GetInterruptStatus() & (S3250UART_INT_RXD | S3250UART_INT_TXD | S3250UART_INT_ERR))==0);
+    ASSERT((GetInterruptStatus() & (LPC32XX_HSU_TX_INT | LPC32XX_HSU_FE_INT|LPC32XX_HSU_BRK_INT|LPC32XX_HSU_RX_OE_INT))==0);
     // IST Start to Run.
     m_HardwareLock.Unlock();
     CSerialPDD::PostInit();
@@ -601,7 +585,7 @@ ULONG   CPdd3250Uart::CancelReceive()
 BOOL    CPdd3250Uart::InitModem(BOOL bInit)
 {
     m_HardwareLock.Lock();   
-    m_pReg3250Uart->Write_UMCON((1<<0)); // Disable AFC and Set RTS as default.
+    //m_pReg3250Uart->Write_UMCON((1<<0)); // Disable AFC and Set RTS as default.
     m_HardwareLock.Unlock();
     return TRUE;
 }
