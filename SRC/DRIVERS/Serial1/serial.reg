@@ -1,0 +1,11 @@
+; @CESYSGEN IF COREDLL_SERDEV
+IF BSP_NOSERIAL1 !
+[HKEY_LOCAL_MACHINE\Drivers\BuiltIn\Ser1]
+   "Order"=dword:0
+   "DeviceArrayIndex"=dword:1
+   "Prefix"="COM"
+   "Index"=dword:1   
+   "Dll"="serial1.dll"
+ENDIF BSP_NOSERIAL1 !
+; @CESYSGEN ENDIF COREDLL_SERDEV
+;-------------------------------------------------------------------------------

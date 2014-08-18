@@ -80,7 +80,6 @@ the CS around all register accesses.
 #include <windows.h>
 #include <types.h>
 #include <nkintr.h>
-//#include <bceddk.h>
 #include <ceddk.h>
 #include <memory.h>
 #include <devload.h>
@@ -95,37 +94,17 @@ the CS around all register accesses.
 #include "isr.h"
 #include "hw.h"
 #include "serial.h"
-//#include <S2440.h>
-//#include "platform.h"
 
 
 #ifndef _PREFAST_
 #pragma warning(disable: 4068) // Disable pragma warnings
 #endif
 
-#define UART_PHY_BASE		(SER16550_PHYSADDR)
-
-#define UART_IRQ           (HWINTR_EXT_COM)
-
-
-// CPU data bus width.
-//#define CPU_DATA_BUS_WIDTH_16 // define this for AU1200
-
-#ifdef CPU_DATA_BUS_WIDTH_16
-
-#define CPU_REG_STRIDE		2
-
-#define INB(pInfo, reg) ((UCHAR)(READ_PORT_USHORT((USHORT *)((pInfo)->reg))))
-#define OUTB(pInfo, reg, value) (WRITE_PORT_USHORT((USHORT *)((pInfo)->reg), (unsigned short)(value)))
-
-#else 
 // for 8BIT data bus
 #define CPU_REG_STRIDE		1
 
 #define INB(pInfo, reg) (READ_PORT_UCHAR((UCHAR *)((pInfo)->reg)))
 #define OUTB(pInfo, reg, value) (WRITE_PORT_UCHAR((UCHAR *)((pInfo)->reg), (unsigned char)(value)))
-
-#endif //16BIT_DATA_BUS
 
 
 //
@@ -2182,7 +2161,7 @@ SL_GetCommProperties(PVOID pContext, COMMPROP *pCommProp)
 	pCommProp->dwServiceMask = SP_SERIALCOMM;
 	pCommProp->dwMaxTxQueue = 16;
 	pCommProp->dwMaxRxQueue = 16;
-	pCommProp->dwMaxBaud = BAUD_921600;
+	pCommProp->dwMaxBaud = BAUD_460800;
 	pCommProp->dwProvSubType = PST_RS232;
 
 	pCommProp->dwProvCapabilities = PCF_DTRDSR | PCF_INTTIMEOUTS | PCF_PARITY_CHECK | PCF_RLSD | 
@@ -2194,7 +2173,7 @@ SL_GetCommProperties(PVOID pContext, COMMPROP *pCommProp)
 
 	pCommProp->dwSettableBaud = BAUD_075 | BAUD_110 | BAUD_150 | BAUD_300 | BAUD_600 | BAUD_1200 | 
 		BAUD_1800 | BAUD_2400 | BAUD_4800 | BAUD_7200 | BAUD_9600 | BAUD_14400 |
-		BAUD_19200 | BAUD_38400 | BAUD_57600 | BAUD_115200 | BAUD_230400 | BAUD_460800 | BAUD_921600;
+		BAUD_19200 | BAUD_38400 | BAUD_57600 | BAUD_115200 | BAUD_230400 | BAUD_460800;
 	pCommProp->wSettableData = DATABITS_5 | DATABITS_6 | DATABITS_7 | DATABITS_8;
 
 	pCommProp->wSettableStopParity = STOPBITS_10 | STOPBITS_20 |

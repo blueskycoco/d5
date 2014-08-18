@@ -9,7 +9,7 @@ this source code. For a copy of the EULA, please see the LICENSE.RTF on your
 install media.
 !endif
 RELEASETYPE=PLATFORM
-TARGETNAME=serial
+TARGETNAME=serial3
 TARGETTYPE=DYNLINK
 DLLENTRY=DllEntry
 
