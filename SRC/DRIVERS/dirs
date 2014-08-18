@@ -25,3 +25,4 @@ DIRS= \
    usb \
    brazil \
    NDIS \
+   serial

@@ -85,9 +85,10 @@
 #define OAL_INTR_DMACH_4         46
 #define OAL_INTR_DMACH_5         47
 #define OAL_INTR_DMACH_6         48
-#define OAL_INTR_VIRT_LAST       48
+#define OAL_INTR_IRQ_UART1       49
+#define OAL_INTR_VIRT_LAST       49
 
-#define OAL_INTR_IRQ_LAST        48
+#define OAL_INTR_IRQ_LAST        49
 
 // Profiler ISR function pointer type
 typedef UINT32 (*PFN_PROFILER_ISR)(UINT32 ra);

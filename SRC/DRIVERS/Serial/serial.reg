@@ -1,0 +1,40 @@
+; @CESYSGEN IF COREDLL_SERDEV
+IF BSP_NOSERIAL !
+[HKEY_LOCAL_MACHINE\Drivers\BuiltIn\Ser1]
+   "Order"=dword:0
+   "DeviceArrayIndex"=dword:1
+   "Prefix"="COM"
+   "Index"=dword:1   
+   "Dll"="serial.dll"
+[HKEY_LOCAL_MACHINE\Drivers\BuiltIn\Ser1\Unimodem]
+   "Tsp"="Unimodem.dll"
+   "DeviceType"=dword:0
+   "FriendlyName"="Serial Cable on COM1:"
+   
+
+   
+[HKEY_LOCAL_MACHINE\ExtModems\HayesCompat1] 
+	"Port"="COM1:" 
+	"DeviceType"=dword:1
+	"FriendlyName"="Hayes Compatible on COM1:"
+	
+[HKEY_LOCAL_MACHINE\Drivers\BuiltIn\Ser3]
+   "Order"=dword:0
+   "DeviceArrayIndex"=dword:3
+   "Prefix"="COM"
+   "Index"=dword:3   
+   "Dll"="ser1ial.dll"
+[HKEY_LOCAL_MACHINE\Drivers\BuiltIn\Ser3\Unimodem]
+   "Tsp"="Unimodem.dll"
+   "DeviceType"=dword:0
+   "FriendlyName"="Serial Cable on COM3:"
+   
+
+   
+[HKEY_LOCAL_MACHINE\ExtModems\HayesCompat3] 
+	"Port"="COM3:" 
+	"DeviceType"=dword:1
+	"FriendlyName"="Hayes Compatible on COM3:"
+ENDIF BSP_NOSERIAL !
+; @CESYSGEN ENDIF COREDLL_SERDEV
+;-------------------------------------------------------------------------------

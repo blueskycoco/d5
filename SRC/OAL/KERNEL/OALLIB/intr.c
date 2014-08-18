@@ -97,7 +97,8 @@ static const OAL_TO_HW_IRQ_T lp32xx_ierqsupp[OAL_INTR_IRQ_LAST + 1] = {
     {OAL_INTR_DMACH_3,         VIRTINTR},
     {OAL_INTR_DMACH_4,         VIRTINTR},
     {OAL_INTR_DMACH_5,         VIRTINTR},
-    {OAL_INTR_DMACH_6,         VIRTINTR}
+    {OAL_INTR_DMACH_6,         VIRTINTR},
+    {OAL_INTR_IRQ_UART1,         IRQ_UART_IIR1}
 };
 
 // Map list for LPC32xx IRQ to BSP IRQ. This is used to convert a LPC32xx
