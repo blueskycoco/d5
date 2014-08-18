@@ -1,29 +1,34 @@
-!if 0
-Copyright (c) Microsoft Corporation.  All rights reserved.
-!endif
-!if 0
-Use of this source code is subject to the terms of the Microsoft end-user
-license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
-If you did not accept the terms of the EULA, you are not authorized to use
-this source code. For a copy of the EULA, please see the LICENSE.RTF on your
-install media.
-!endif
-RELEASETYPE=PLATFORM
-TARGETNAME=serial1
+# Copyright (c) Microsoft Corporation.  All rights reserved.
+# Use of this source code is subject to the terms of the Microsoft end-user
+# license agreement (EULA) under which you licensed this SOFTWARE PRODUCT.
+# If you did not accept the terms of the EULA, you are not authorized to use
+# this source code. For a copy of the EULA, please see the LICENSE.RTF on your
+# install media.
+# xref VIGUID {549CAC8D_8AF0_4789_9ACF_2BB92599470D}
+# xref VSGUID {0601CE65_BF4D_453A_966B_E20250AD2E8E}
+
+!IF "$(BSP_NOSERIAL)" == "1"
+SKIPBUILD=1
+!ENDIF
+
+WINCEOEM=1
+TARGETNAME=serial_smdk2450
 TARGETTYPE=DYNLINK
+RELEASETYPE=PLATFORM
+DEFFILE=serial.def
 DLLENTRY=DllEntry
 
-INCLUDES=\
-    $(_TARGETPLATROOT)\inc;
-
-SOURCES=\
-	serial.c
-
-SOURCELIBS= \
-    $(_COMMONOAKROOT)\lib\$(_CPUINDPATH)\com_mdd2.lib
+INCLUDES= \
+    $(_TARGETPLATROOT)\src\inc;
 
 TARGETLIBS= \
-    $(_COMMONOAKROOT)\lib\$(_CPUINDPATH)\ceddk.lib \
     $(_COMMONSDKROOT)\lib\$(_CPUINDPATH)\coredll.lib \
-    $(_TARGETPLATROOT)\lib\$(_CPUDEPPATH)\bsp_clkpwr_support.lib
+    $(_SYSGENOAKROOT)\lib\$(_CPUINDPATH)\ceddk.lib
 
+SOURCELIBS= \
+    $(_SYSGENOAKROOT)\lib\$(_CPUINDPATH)\serpddcm.lib \
+    $(_SYSGENOAKROOT)\lib\$(_CPUINDPATH)\com_mdd2.lib
+
+SOURCES= \
+    ser_smdk2450.cpp \
+    pdds3c2450_ser.cpp

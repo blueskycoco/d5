@@ -8,17 +8,17 @@
 ; this source code. For a copy of the EULA, please see the LICENSE.RTF on your
 ; install media.
 ;
-LIBRARY SERIAL
+LIBRARY     SERIAL
 
-EXPORTS
-	COM_Init
-	COM_Deinit
-	COM_Open
-	COM_Close
-	COM_Read
-	COM_Write
-	COM_Seek
-	COM_PowerDown
-	COM_PowerUp
-	COM_IOControl
-
+EXPORTS COM_Init
+    COM_Deinit
+    COM_PreDeinit
+    COM_Open
+    COM_Close
+    COM_PreClose
+    COM_Read
+    COM_Write
+    COM_Seek
+    COM_PowerDown
+    COM_PowerUp
+    COM_IOControl
