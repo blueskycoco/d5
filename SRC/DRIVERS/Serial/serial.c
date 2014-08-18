@@ -768,6 +768,7 @@ Ser_GetRegistryData(PSER_INFO pHWHead, LPCTSTR regKeyPath)
 				clkpwr_clk_en_dis(CLKPWR_UART3_CLK, 1);
 				tmp = pUARTCntlRegs->clkmode & UART_CLKMODE_MASK(3);
 				pUARTCntlRegs->clkmode = (tmp |	UART_CLKMODE_LOAD(UART_CLKMODE_AUTO, (3)));	
+				pUARTCntlRegs->ctrl |= UART_U3_MD_CTRL_EN;	//need test and check
 				phBase.QuadPart = UART3_BASE;//0x29000000;
 				irq = IRQ_UART_IIR3;
 				pHWHead->dwSysIntr = OAL_INTR_IRQ_UART3;
