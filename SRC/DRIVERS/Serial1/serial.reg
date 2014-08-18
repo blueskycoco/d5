@@ -1,11 +1,21 @@
 ; @CESYSGEN IF COREDLL_SERDEV
-IF BSP_NOSERIAL1 !
-[HKEY_LOCAL_MACHINE\Drivers\BuiltIn\Ser1]
-   "Order"=dword:0
-   "DeviceArrayIndex"=dword:1
+[HKEY_LOCAL_MACHINE\Drivers\BuiltIn\Serial]
+   "DeviceArrayIndex"=dword:0
+   "Irq"=dword:1a
+   "MemBase"=dword:40014000
+   "MemLen"=dword:18 ;; 2c
+   "InterruptBitsShift"=dword:0 ; UART 0 Interrupt Sub Register shift bit.
+   "ISTTimeouts"=dword:200	; every 512 ticks checking Modem status.
    "Prefix"="COM"
-   "Index"=dword:1   
-   "Dll"="serial1.dll"
-ENDIF BSP_NOSERIAL1 !
+   "Index"=dword:1
+   "Dll"="serial_smdk2450.dll"
+   "Order"=dword:0
+   "Priority"=dword:0
+   "Port"="COM1:"
+   "DeviceType"=dword:0
+   "FriendlyName"=LOC_DISPLAYNAME_COM1
+   "Tsp"="unimodem.dll"
+   "IClass"="{CC5195AC-BA49-48a0-BE17-DF6D1B0173DD}"
+   "DevConfig"=hex: 10,00, 00,00, 05,00,00,00, 10,01,00,00, 00,4B,00,00, 00,00, 08, 00, 00, 00,00,00,00
 ; @CESYSGEN ENDIF COREDLL_SERDEV
 ;-------------------------------------------------------------------------------

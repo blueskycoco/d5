@@ -27,8 +27,70 @@ Notes:
 //#define    DEBUG
 #include <cserpdd.h>
 #include <cmthread.h>
-#include <S3c2450_intr.h>
-#define DEFAULT_S3C2450_PCLK (S3C2450_PCLK)
+#include "lpc32xx_uart.h"
+#include "lpc32xx_clkpwr.h"
+#include "clkpwr_support.h"
+
+/*
+ * High speed UART register offsets
+ */
+#define LPC32XX_HSUART_FIFO(x)			(x + 0x00)
+#define LPC32XX_HSUART_LEVEL(x)			(x + 0x04)
+#define LPC32XX_HSUART_IIR(x)			(x + 0x08)
+#define LPC32XX_HSUART_CTRL(x)			(x + 0x0C)
+#define LPC32XX_HSUART_RATE(x)			(x + 0x10)
+
+#define LPC32XX_HSU_BREAK_DATA			(1 << 10)
+#define LPC32XX_HSU_ERROR_DATA			(1 << 9)
+#define LPC32XX_HSU_RX_EMPTY			(1 << 8)
+
+#define LPC32XX_HSU_TX_LEV(n)			(((n) >> 8) & 0xFF)
+#define LPC32XX_HSU_RX_LEV(n)			((n) & 0xFF)
+
+#define LPC32XX_HSU_TX_INT_SET			(1 << 6)
+#define LPC32XX_HSU_RX_OE_INT			(1 << 5)
+#define LPC32XX_HSU_BRK_INT			(1 << 4)
+#define LPC32XX_HSU_FE_INT			(1 << 3)
+#define LPC32XX_HSU_RX_TIMEOUT_INT		(1 << 2)
+#define LPC32XX_HSU_RX_TRIG_INT			(1 << 1)
+#define LPC32XX_HSU_TX_INT			(1 << 0)
+
+#define LPC32XX_HSU_HRTS_INV			(1 << 21)
+#define LPC32XX_HSU_HRTS_TRIG_8B		(0x0 << 19)
+#define LPC32XX_HSU_HRTS_TRIG_16B		(0x1 << 19)
+#define LPC32XX_HSU_HRTS_TRIG_32B		(0x2 << 19)
+#define LPC32XX_HSU_HRTS_TRIG_48B		(0x3 << 19)
+#define LPC32XX_HSU_HRTS_EN			(1 << 18)
+#define LPC32XX_HSU_TMO_DISABLED		(0x0 << 16)
+#define LPC32XX_HSU_TMO_INACT_4B		(0x1 << 16)
+#define LPC32XX_HSU_TMO_INACT_8B		(0x2 << 16)
+#define LPC32XX_HSU_TMO_INACT_16B		(0x3 << 16)
+#define LPC32XX_HSU_HCTS_INV			(1 << 15)
+#define LPC32XX_HSU_HCTS_EN			(1 << 14)
+#define LPC32XX_HSU_OFFSET(n)			((n) << 9)
+#define LPC32XX_HSU_BREAK			(1 << 8)
+#define LPC32XX_HSU_ERR_INT_EN			(1 << 7)
+#define LPC32XX_HSU_RX_INT_EN			(1 << 6)
+#define LPC32XX_HSU_TX_INT_EN			(1 << 5)
+#define LPC32XX_HSU_RX_TL1B			(0x0 << 2)
+#define LPC32XX_HSU_RX_TL4B			(0x1 << 2)
+#define LPC32XX_HSU_RX_TL8B			(0x2 << 2)
+#define LPC32XX_HSU_RX_TL16B			(0x3 << 2)
+#define LPC32XX_HSU_RX_TL32B			(0x4 << 2)
+#define LPC32XX_HSU_RX_TL48B			(0x5 << 2)
+#define LPC32XX_HSU_TX_TLEMPTY			(0x0 << 0)
+#define LPC32XX_HSU_TX_TL0B			(0x0 << 0)
+#define LPC32XX_HSU_TX_TL4B			(0x1 << 0)
+#define LPC32XX_HSU_TX_TL8B			(0x2 << 0)
+#define LPC32XX_HSU_TX_TL16B			(0x3 << 0)
+
+typedef struct {
+	volatile UNS_32 data;
+	volatile UNS_32 level;
+	volatile UNS_32 iir;
+	volatile UNS_32 cr;
+	volatile UNS_32 rcr;
+} UART_REGS_T;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //// S3C2450 UART Register

@@ -19,7 +19,7 @@ Module Name:
 
 Abstract:
 
-    Serial PDD for SamSang 2450 UART Common Code.
+    Serial PDD for SamSang 3250 UART Common Code.
 
 Notes: 
 --*/
@@ -31,8 +31,8 @@ Notes:
 #include <ddkreg.h>
 #include <serhw.h>
 #include <Serdbg.h>
-#include <pdds3c2450_ser.h>
-#include <s3c2450_base_regs.h>
+//#include <pdds3c3250_ser.h>
+//#include <s3c3250_base_regs.h>
 
 #define    EPLL_CLK    0
 
@@ -42,7 +42,7 @@ Notes:
 #define ZONE_INIT    1
 */
 
-CReg2450Uart::CReg2450Uart(PULONG pRegAddr)
+CReg3250Uart::CReg3250Uart(PULONG pRegAddr)
 :   m_pReg(pRegAddr)
 {
     m_fIsBackedUp = FALSE;
@@ -50,17 +50,17 @@ CReg2450Uart::CReg2450Uart(PULONG pRegAddr)
 //    DWORD dwBytesReturned;
 //    if (!KernelIoControl(IOCTL_PROCESSOR_INFORMATION, NULL, 0, &procInfo, sizeof(PROCESSOR_INFO), &dwBytesReturned))
 //    {
-        m_s3c2450_pclk = S3C2450_PCLK;//DEFAULT_S3C2450_PCLK; 
-        //RETAILMSG(TRUE, (TEXT("WARNING: CReg2450Uart::CReg2450Uart failed to obtain processor frequency - using default value (%d).\r\n"), m_s3c2450_pclk)); 
+        m_s3c3250_pclk = S3C3250_PCLK;//DEFAULT_S3C3250_PCLK; 
+        //RETAILMSG(TRUE, (TEXT("WARNING: CReg3250Uart::CReg3250Uart failed to obtain processor frequency - using default value (%d).\r\n"), m_s3c3250_pclk)); 
 //    }
 //    else
 //    {
-//        m_s3c2450_pclk = procInfo.dwClockSpeed;
-//        RETAILMSG(TRUE, (TEXT("INFO: CReg2450Uart::CReg2450Uart using processor frequency reported by the OAL (%d).\r\n"), m_s3c2450_pclk)); 
+//        m_s3c3250_pclk = procInfo.dwClockSpeed;
+//        RETAILMSG(TRUE, (TEXT("INFO: CReg3250Uart::CReg3250Uart using processor frequency reported by the OAL (%d).\r\n"), m_s3c3250_pclk)); 
 //    }
 
 }
-BOOL   CReg2450Uart::Init() 
+BOOL   CReg3250Uart::Init() 
 {
 
     if (m_pReg) { // Set Value to default.
@@ -74,7 +74,7 @@ BOOL   CReg2450Uart::Init()
         return FALSE;
 }
 
-void CReg2450Uart::Backup()
+void CReg3250Uart::Backup()
 {
     m_fIsBackedUp = TRUE;
     m_ULCONBackup = Read_ULCON();
@@ -84,7 +84,7 @@ void CReg2450Uart::Backup()
     m_UBRDIVBackup = Read_UBRDIV();    
         m_UDIVSLOTBackup = Read_UDIVSLOT();
 }
-void CReg2450Uart::Restore()
+void CReg3250Uart::Restore()
 {
     if (m_fIsBackedUp) {
         Write_ULCON(m_ULCONBackup );
@@ -96,7 +96,7 @@ void CReg2450Uart::Restore()
         m_fIsBackedUp = FALSE;
     }
 }
-CReg2450Uart::Write_BaudRate(ULONG BaudRate)
+CReg3250Uart::Write_BaudRate(ULONG BaudRate)
 {
         DOUBLE Div_val;
         UINT UDIVSLOTn = 0;
@@ -104,34 +104,34 @@ CReg2450Uart::Write_BaudRate(ULONG BaudRate)
     DEBUGMSG(ZONE_INIT, (TEXT("SetBaudRate -> %d\r\n"), BaudRate));
 
     if ( (Read_UCON() & CS_MASK) == CS_PCLK ) {
-        Div_val = (m_s3c2450_pclk/16.0/BaudRate);
+        Div_val = (m_s3c3250_pclk/16.0/BaudRate);
         UBRDIV = (int)Div_val - 1;
         Write_UBRDIV( UBRDIV );
         UDIVSLOTn = (int)( (Div_val - (int)Div_val) * 16);
         Write_UDIVSLOT( UDIVSLOT_TABLE[UDIVSLOTn] );
-        RETAILMSG( true , (TEXT("CLK:%d, BaudRate:%d, UBRDIV:%d, UDIVSLOTn:%d\r\n"), m_s3c2450_pclk, BaudRate, UBRDIV, UDIVSLOTn));
+        RETAILMSG( true , (TEXT("CLK:%d, BaudRate:%d, UBRDIV:%d, UDIVSLOTn:%d\r\n"), m_s3c3250_pclk, BaudRate, UBRDIV, UDIVSLOTn));
         return TRUE;
     }
    else if( (Read_UCON() & CS_MASK) == (3 << 10) )
    {
-        Div_val = (S3C2450_SCLK/16.0/BaudRate);
+        Div_val = (S3C3250_SCLK/16.0/BaudRate);
         UBRDIV = (int)Div_val - 1;
         Write_UBRDIV( UBRDIV );
         UDIVSLOTn = (int)( (Div_val - (int)Div_val) * 16);
         Write_UDIVSLOT( UDIVSLOT_TABLE[UDIVSLOTn] );
-        RETAILMSG( TRUE , (TEXT("CLK:%d, BaudRate:%d, UBRDIV:%d, UDIVSLOTn:%d\r\n"), S3C2450_SCLK, BaudRate, UBRDIV, UDIVSLOTn));
+        RETAILMSG( TRUE , (TEXT("CLK:%d, BaudRate:%d, UBRDIV:%d, UDIVSLOTn:%d\r\n"), S3C3250_SCLK, BaudRate, UBRDIV, UDIVSLOTn));
         return TRUE;
    }
     else {
         // TODO: Support external UART clock.
-        //OUTREG(pHWHead,UBRDIV,( (int)(S2450UCLK/16.0/BaudRate) -1 ));
-        RETAILMSG(TRUE, (TEXT("ERROR: The s3c2450a serial driver doesn't support an external UART clock.\r\n")));
+        //OUTREG(pHWHead,UBRDIV,( (int)(S3250UCLK/16.0/BaudRate) -1 ));
+        RETAILMSG(TRUE, (TEXT("ERROR: The s3c3250a serial driver doesn't support an external UART clock.\r\n")));
         ASSERT(FALSE);
         return(FALSE);
     }
 }
 #ifdef DEBUG
-void CReg2450Uart::DumpRegister()
+void CReg3250Uart::DumpRegister()
 {
     NKDbgPrintfW(TEXT("DumpRegister (ULCON=%x, UCON=%x, UFCON=%x, UMCOM = %x, UBDIV =%x)\r\n"),
         Read_ULCON(),Read_UCON(),Read_UFCON(),Read_UMCON(),Read_UBRDIV());
@@ -139,12 +139,12 @@ void CReg2450Uart::DumpRegister()
 }
 #endif
 
-CPdd2450Uart::CPdd2450Uart (LPTSTR lpActivePath, PVOID pMdd, PHWOBJ pHwObj )
+CPdd3250Uart::CPdd3250Uart (LPTSTR lpActivePath, PVOID pMdd, PHWOBJ pHwObj )
 :   CSerialPDD(lpActivePath,pMdd, pHwObj)
 ,   m_ActiveReg(HKEY_LOCAL_MACHINE,lpActivePath)
 ,   CMiniThread (0, TRUE)   
 {
-    m_pReg2450Uart = NULL;
+    m_pReg3250Uart = NULL;
     m_pINTregs = NULL;
     m_dwIntShift = 0;
     m_dwSysIntr = MAXDWORD;
@@ -155,7 +155,7 @@ CPdd2450Uart::CPdd2450Uart (LPTSTR lpActivePath, PVOID pMdd, PHWOBJ pHwObj )
     m_XmitFifoEnable = FALSE;
     m_dwWaterMark = 8 ;
 }
-CPdd2450Uart::~CPdd2450Uart()
+CPdd3250Uart::~CPdd3250Uart()
 {
     InitModem(FALSE);
     if (m_hISTEvent) {
@@ -166,8 +166,8 @@ CPdd2450Uart::~CPdd2450Uart()
         InterruptDisable( m_dwSysIntr );         
         CloseHandle(m_hISTEvent);
     };
-    if (m_pReg2450Uart)
-        delete m_pReg2450Uart;
+    if (m_pReg3250Uart)
+        delete m_pReg3250Uart;
     if (m_XmitFlushDone)
         CloseHandle(m_XmitFlushDone);
     if (m_pRegVirtualAddr != NULL) {
@@ -178,7 +178,7 @@ CPdd2450Uart::~CPdd2450Uart()
     }
         
 }
-BOOL CPdd2450Uart::Init()
+BOOL CPdd3250Uart::Init()
 {
     if ( CSerialPDD::Init() && IsKeyOpened() && m_XmitFlushDone!=NULL) { 
         // IST Setup .
@@ -202,12 +202,12 @@ BOOL CPdd2450Uart::Init()
         if (!GetRegValue(PC_REG_SERIALWATERMARK_VAL_NAME,(PBYTE)&m_dwWaterMark,sizeof(DWORD))) {
             m_dwWaterMark = 8;
         }
-        if (!GetRegValue(PC_REG_2450UART_INTBIT_VAL_NAME,(PBYTE)&m_dwIntShift,sizeof(DWORD))) {
-            RETAILMSG(1,(TEXT("Registery does not have %s set. Drivers fail!!!\r\n"),PC_REG_2450UART_INTBIT_VAL_NAME));
+        if (!GetRegValue(PC_REG_3250UART_INTBIT_VAL_NAME,(PBYTE)&m_dwIntShift,sizeof(DWORD))) {
+            RETAILMSG(1,(TEXT("Registery does not have %s set. Drivers fail!!!\r\n"),PC_REG_3250UART_INTBIT_VAL_NAME));
             m_dwIntShift =0;
             return FALSE;
         }
-        if (!GetRegValue(PC_REG_2450UART_IST_TIMEOUTS_VAL_NAME,(PBYTE)&m_dwISTTimeout, PC_REG_2450UART_IST_TIMEOUTS_VAL_LEN)) {
+        if (!GetRegValue(PC_REG_3250UART_IST_TIMEOUTS_VAL_NAME,(PBYTE)&m_dwISTTimeout, PC_REG_3250UART_IST_TIMEOUTS_VAL_LEN)) {
             m_dwISTTimeout = INFINITE;
         }
         if (!MapHardware() || !CreateHardwareAccess()) {
@@ -218,7 +218,7 @@ BOOL CPdd2450Uart::Init()
     }
     return FALSE;
 }
-BOOL CPdd2450Uart::MapHardware() 
+BOOL CPdd3250Uart::MapHardware() 
 {
     if (m_pRegVirtualAddr !=NULL)
         return TRUE;
@@ -243,74 +243,74 @@ BOOL CPdd2450Uart::MapHardware()
         // Map it if it is Memeory Mapped IO.
         m_pRegVirtualAddr = MmMapIoSpace(ioPhysicalBase, dwi.memWindows[0].dwLen,FALSE);
     }
-    ioPhysicalBase.LowPart = S3C2450_BASE_REG_PA_INTR ;
+    ioPhysicalBase.LowPart = S3C3250_BASE_REG_PA_INTR ;
     ioPhysicalBase.HighPart = 0;
     inIoSpace = 0; 
     if (TranslateBusAddr(m_hParent,(INTERFACE_TYPE)dwi.dwInterfaceType,dwi.dwBusNumber, ioPhysicalBase,&inIoSpace,&ioPhysicalBase)) {
-        m_pINTregs = (S3C2450_INTR_REG *) MmMapIoSpace(ioPhysicalBase,sizeof(S3C2450_INTR_REG),FALSE);
+        m_pINTregs = (S3C3250_INTR_REG *) MmMapIoSpace(ioPhysicalBase,sizeof(S3C3250_INTR_REG),FALSE);
     }
     return (m_pRegVirtualAddr!=NULL && m_pINTregs!=NULL);
 }
-BOOL CPdd2450Uart::CreateHardwareAccess()
+BOOL CPdd3250Uart::CreateHardwareAccess()
 {
-    if (m_pReg2450Uart)
+    if (m_pReg3250Uart)
         return TRUE;
     if (m_pRegVirtualAddr!=NULL) {
-        m_pReg2450Uart = new CReg2450Uart((PULONG)m_pRegVirtualAddr);
-        if (m_pReg2450Uart && !m_pReg2450Uart->Init()) { // FALSE.
-            delete m_pReg2450Uart ;
-            m_pReg2450Uart = NULL;
+        m_pReg3250Uart = new CReg3250Uart((PULONG)m_pRegVirtualAddr);
+        if (m_pReg3250Uart && !m_pReg3250Uart->Init()) { // FALSE.
+            delete m_pReg3250Uart ;
+            m_pReg3250Uart = NULL;
         }
             
     }
-    return (m_pReg2450Uart!=NULL);
+    return (m_pReg3250Uart!=NULL);
 }
 #define MAX_RETRY 0x1000
-void CPdd2450Uart::PostInit()
+void CPdd3250Uart::PostInit()
 {
     DWORD dwCount=0;
     m_HardwareLock.Lock();
-    m_pReg2450Uart->Write_UCON(0); // Set to Default;
-    DisableInterrupt(S2450UART_INT_RXD | S2450UART_INT_TXD | S2450UART_INT_ERR);
+    m_pReg3250Uart->Write_UCON(0); // Set to Default;
+    DisableInterrupt(S3250UART_INT_RXD | S3250UART_INT_TXD | S3250UART_INT_ERR);
     // Mask all interrupt.
-    while ((GetInterruptStatus() & (S2450UART_INT_RXD | S2450UART_INT_TXD | S2450UART_INT_ERR))!=0 && 
+    while ((GetInterruptStatus() & (S3250UART_INT_RXD | S3250UART_INT_TXD | S3250UART_INT_ERR))!=0 && 
             dwCount <MAX_RETRY) { // Interrupt.
         InitReceive(TRUE);
         InitLine(TRUE);
-        ClearInterrupt(S2450UART_INT_RXD | S2450UART_INT_TXD | S2450UART_INT_ERR);
+        ClearInterrupt(S3250UART_INT_RXD | S3250UART_INT_TXD | S3250UART_INT_ERR);
         dwCount++;
     }
-    ASSERT((GetInterruptStatus() & (S2450UART_INT_RXD | S2450UART_INT_TXD | S2450UART_INT_ERR))==0);
+    ASSERT((GetInterruptStatus() & (S3250UART_INT_RXD | S3250UART_INT_TXD | S3250UART_INT_ERR))==0);
     // IST Start to Run.
     m_HardwareLock.Unlock();
     CSerialPDD::PostInit();
     CeSetPriority(m_dwPriority256);
 #ifdef DEBUG
     if ( ZONE_INIT )
-        m_pReg2450Uart->DumpRegister();
+        m_pReg3250Uart->DumpRegister();
 #endif
     ThreadStart();  // Start IST.
 }
-DWORD CPdd2450Uart::ThreadRun()
+DWORD CPdd3250Uart::ThreadRun()
 {
     while ( m_hISTEvent!=NULL && !IsTerminated() ) {
         if ( WaitForSingleObject( m_hISTEvent, m_dwISTTimeout) == WAIT_OBJECT_0) {
             m_HardwareLock.Lock();    
             while ( !IsTerminated() ) {
-                DWORD dwData = ( GetInterruptStatus() & (S2450UART_INT_RXD | S2450UART_INT_TXD | S2450UART_INT_ERR) );
-                DWORD dwMask = ( GetIntrruptMask() & (S2450UART_INT_RXD | S2450UART_INT_TXD | S2450UART_INT_ERR));
+                DWORD dwData = ( GetInterruptStatus() & (S3250UART_INT_RXD | S3250UART_INT_TXD | S3250UART_INT_ERR) );
+                DWORD dwMask = ( GetIntrruptMask() & (S3250UART_INT_RXD | S3250UART_INT_TXD | S3250UART_INT_ERR));
                  DEBUGMSG(ZONE_THREAD,
-                      (TEXT(" CPdd2450Uart::ThreadRun INT=%x, MASK =%x\r\n"),dwData,dwMask));
+                      (TEXT(" CPdd3250Uart::ThreadRun INT=%x, MASK =%x\r\n"),dwData,dwMask));
                 dwMask &= dwData;
                 if (dwMask) {
                     DEBUGMSG(ZONE_THREAD,
-                      (TEXT(" CPdd2450Uart::ThreadRun Active INT=%x\r\n"),dwMask));
+                      (TEXT(" CPdd3250Uart::ThreadRun Active INT=%x\r\n"),dwMask));
                     DWORD interrupts=INTR_MODEM; // Always check Modem when we have change. It may work at polling mode.
-                    if ((dwMask & S2450UART_INT_RXD)!=0)
+                    if ((dwMask & S3250UART_INT_RXD)!=0)
                         interrupts |= INTR_RX;
-                    if ((dwMask & S2450UART_INT_TXD)!=0)
+                    if ((dwMask & S3250UART_INT_TXD)!=0)
                         interrupts |= INTR_TX;
-                    if ((dwMask & S2450UART_INT_ERR)!=0) 
+                    if ((dwMask & S3250UART_INT_ERR)!=0) 
                         interrupts |= INTR_LINE | INTR_RX;
                     NotifyPDDInterrupt( (INTERRUPT_TYPE)interrupts );
                     ClearInterrupt(dwData);
@@ -323,31 +323,31 @@ DWORD CPdd2450Uart::ThreadRun()
         }
         else { // Polling Modem.
             NotifyPDDInterrupt(INTR_MODEM);
-            DEBUGMSG(ZONE_THREAD,(TEXT(" CPdd2450Uart::ThreadRun timeout INT=%x,MASK=%d\r\n"), m_pINTregs->SUBSRCPND, m_pINTregs->INTSUBMSK) );
+            DEBUGMSG(ZONE_THREAD,(TEXT(" CPdd3250Uart::ThreadRun timeout INT=%x,MASK=%d\r\n"), m_pINTregs->SUBSRCPND, m_pINTregs->INTSUBMSK) );
 #ifdef DEBUG
             if ( ZONE_THREAD )
-                m_pReg2450Uart->DumpRegister();
+                m_pReg3250Uart->DumpRegister();
 #endif
         }
     }
     return 1;
 }
-BOOL CPdd2450Uart::InitialEnableInterrupt(BOOL bEnable )
+BOOL CPdd3250Uart::InitialEnableInterrupt(BOOL bEnable )
 {
     m_HardwareLock.Lock();
     if (bEnable) 
-        EnableInterrupt(S2450UART_INT_RXD | S2450UART_INT_ERR );
+        EnableInterrupt(S3250UART_INT_RXD | S3250UART_INT_ERR );
     else
-        DisableInterrupt(S2450UART_INT_RXD | S2450UART_INT_ERR );
+        DisableInterrupt(S3250UART_INT_RXD | S3250UART_INT_ERR );
     m_HardwareLock.Unlock();
     return TRUE;
 }
 
-BOOL  CPdd2450Uart::InitXmit(BOOL bInit)
+BOOL  CPdd3250Uart::InitXmit(BOOL bInit)
 {
     if (bInit) { 
         m_HardwareLock.Lock();    
-        DWORD dwBit = m_pReg2450Uart->Read_UCON();
+        DWORD dwBit = m_pReg3250Uart->Read_UCON();
 #if EPLL_CLK
         // Set UART CLK.
         dwBit &= ~(3 << 10);
@@ -358,21 +358,21 @@ BOOL  CPdd2450Uart::InitXmit(BOOL bInit)
         // Set Interrupt Tx Mode.
         dwBit &= ~(3<<2);
         dwBit |= (1<<2);
-        m_pReg2450Uart->Write_UCON(dwBit );
+        m_pReg3250Uart->Write_UCON(dwBit );
 
-        dwBit = m_pReg2450Uart->Read_UFCON();
+        dwBit = m_pReg3250Uart->Read_UFCON();
         // Reset Xmit Fifo.
         dwBit |= (1<<2);
         dwBit &= ~(1<<0);
-        m_pReg2450Uart->Write_UFCON( dwBit);
+        m_pReg3250Uart->Write_UFCON( dwBit);
         // Set Trigger level to 16. 
         dwBit &= ~(3<<6);//empty
         dwBit |= (1<<6);//16
-        m_pReg2450Uart->Write_UFCON(dwBit); 
+        m_pReg3250Uart->Write_UFCON(dwBit); 
         // Enable Xmit FIFO.
         dwBit &= ~(1<<2);
         dwBit |= (1<<0);
-        m_pReg2450Uart->Write_UFCON(dwBit); // Xmit Fifo Reset Done..
+        m_pReg3250Uart->Write_UFCON(dwBit); // Xmit Fifo Reset Done..
         m_HardwareLock.Unlock();
     }
     else { // Make Sure data has been trasmit out.
@@ -380,26 +380,26 @@ BOOL  CPdd2450Uart::InitXmit(BOOL bInit)
         DWORD dwTicks = 0;
         DWORD dwUTRState;
         while (dwTicks < 1000 && 
-                (((dwUTRState = m_pReg2450Uart->Read_UTRSTAT())>>1) & 3)!=3  ) { // Transmitter empty is not true
-            DEBUGMSG(ZONE_THREAD|ZONE_WRITE, (TEXT("CPdd2450Uart::InitXmit! Wait for UTRSTAT=%x clear.\r\n"), dwUTRState));
+                (((dwUTRState = m_pReg3250Uart->Read_UTRSTAT())>>1) & 3)!=3  ) { // Transmitter empty is not true
+            DEBUGMSG(ZONE_THREAD|ZONE_WRITE, (TEXT("CPdd3250Uart::InitXmit! Wait for UTRSTAT=%x clear.\r\n"), dwUTRState));
             Sleep(5);
             dwTicks +=5;
         }
     }
     return TRUE;
 }
-DWORD   CPdd2450Uart::GetWriteableSize()
+DWORD   CPdd3250Uart::GetWriteableSize()
 {
     DWORD dwWriteSize = 0;
-    DWORD dwUfState = m_pReg2450Uart->Read_UFSTAT() ;
+    DWORD dwUfState = m_pReg3250Uart->Read_UFSTAT() ;
     if ((dwUfState& (1<<14))==0) { // It is not full.
         dwUfState = ((dwUfState>>8) & 0x3f); // It is fifo count.
-        if (dwUfState < SER2450_FIFO_DEPTH_TX-1)
-            dwWriteSize = SER2450_FIFO_DEPTH_TX-1 - dwUfState;
+        if (dwUfState < SER3250_FIFO_DEPTH_TX-1)
+            dwWriteSize = SER3250_FIFO_DEPTH_TX-1 - dwUfState;
     }
     return dwWriteSize;
 }
-void    CPdd2450Uart::XmitInterruptHandler(PUCHAR pTxBuffer, ULONG *pBuffLen)
+void    CPdd3250Uart::XmitInterruptHandler(PUCHAR pTxBuffer, ULONG *pBuffLen)
 {
     PREFAST_DEBUGCHK(pBuffLen!=NULL);
     m_HardwareLock.Lock();    
@@ -414,39 +414,39 @@ void    CPdd2450Uart::XmitInterruptHandler(PUCHAR pTxBuffer, ULONG *pBuffLen)
 
         Rx_Pause(TRUE);
         if ((m_DCB.fOutxCtsFlow && IsCTSOff()) ||(m_DCB.fOutxDsrFlow && IsDSROff())) { // We are in flow off
-            DEBUGMSG(ZONE_THREAD|ZONE_WRITE, (TEXT("CPdd2450Uart::XmitInterruptHandler! Flow Off, Data Discard.\r\n")));
+            DEBUGMSG(ZONE_THREAD|ZONE_WRITE, (TEXT("CPdd3250Uart::XmitInterruptHandler! Flow Off, Data Discard.\r\n")));
             EnableXmitInterrupt(FALSE);
         }
         else  {
             DWORD dwWriteSize = GetWriteableSize();
-            DEBUGMSG(ZONE_THREAD|ZONE_WRITE,(TEXT("CPdd2450Uart::XmitInterruptHandler! WriteableSize=%x to FIFO,dwDataAvaiable=%x\r\n"),
+            DEBUGMSG(ZONE_THREAD|ZONE_WRITE,(TEXT("CPdd3250Uart::XmitInterruptHandler! WriteableSize=%x to FIFO,dwDataAvaiable=%x\r\n"),
                     dwWriteSize,dwDataAvaiable));
             for (DWORD dwByteWrite=0; dwByteWrite<dwWriteSize && dwDataAvaiable!=0;dwByteWrite++) {
-                m_pReg2450Uart->Write_UTXH(*pTxBuffer);
+                m_pReg3250Uart->Write_UTXH(*pTxBuffer);
                 pTxBuffer ++;
                 dwDataAvaiable--;
             }
-            DEBUGMSG(ZONE_THREAD|ZONE_WRITE,(TEXT("CPdd2450Uart::XmitInterruptHandler! Write %d byte to FIFO\r\n"),dwByteWrite));
+            DEBUGMSG(ZONE_THREAD|ZONE_WRITE,(TEXT("CPdd3250Uart::XmitInterruptHandler! Write %d byte to FIFO\r\n"),dwByteWrite));
             *pBuffLen = dwByteWrite;
             EnableXmitInterrupt(TRUE);        
         }
-        ClearInterrupt(S2450UART_INT_TXD);
+        ClearInterrupt(S3250UART_INT_TXD);
 
-        if (m_pReg2450Uart->Read_ULCON() & (0x1<<6))
-            while( (m_pReg2450Uart->Read_UFSTAT() >> 0x8 ) & 0x3f );
+        if (m_pReg3250Uart->Read_ULCON() & (0x1<<6))
+            while( (m_pReg3250Uart->Read_UFSTAT() >> 0x8 ) & 0x3f );
         Rx_Pause(FALSE);
     }
     m_HardwareLock.Unlock();
 }
 
-void    CPdd2450Uart::XmitComChar(UCHAR ComChar)
+void    CPdd3250Uart::XmitComChar(UCHAR ComChar)
 {
     // This function has to poll until the Data can be sent out.
     BOOL bDone = FALSE;
     do {
         m_HardwareLock.Lock(); 
         if ( GetWriteableSize()!=0 ) {  // If not full 
-            m_pReg2450Uart->Write_UTXH(ComChar);
+            m_pReg3250Uart->Write_UTXH(ComChar);
             bDone = TRUE;
         }
         else {
@@ -458,18 +458,18 @@ void    CPdd2450Uart::XmitComChar(UCHAR ComChar)
     }
     while (!bDone);
 }
-BOOL    CPdd2450Uart::EnableXmitInterrupt(BOOL fEnable)
+BOOL    CPdd3250Uart::EnableXmitInterrupt(BOOL fEnable)
 {
     m_HardwareLock.Lock();
     if (fEnable)
-        EnableInterrupt(S2450UART_INT_TXD);
+        EnableInterrupt(S3250UART_INT_TXD);
     else
-        DisableInterrupt(S2450UART_INT_TXD);
+        DisableInterrupt(S3250UART_INT_TXD);
     m_HardwareLock.Unlock();
     return TRUE;
         
 }
-BOOL  CPdd2450Uart::CancelXmit()
+BOOL  CPdd3250Uart::CancelXmit()
 {
     return InitXmit(TRUE);     
 }
@@ -480,7 +480,7 @@ static PAIRS s_HighWaterPairs[] = {
     {3, 32 }
 };
 
-BYTE  CPdd2450Uart::GetWaterMarkBit()
+BYTE  CPdd3250Uart::GetWaterMarkBit()
 {
     BYTE bReturnKey = (BYTE)s_HighWaterPairs[0].Key;
     for (DWORD dwIndex = dim(s_HighWaterPairs)-1 ; dwIndex != 0; dwIndex --) {
@@ -491,7 +491,7 @@ BYTE  CPdd2450Uart::GetWaterMarkBit()
     }
     return bReturnKey;
 }
-DWORD   CPdd2450Uart::GetWaterMark()
+DWORD   CPdd3250Uart::GetWaterMark()
 {
     BYTE bReturnValue = (BYTE)s_HighWaterPairs[0].AssociatedValue;
     for (DWORD dwIndex = dim(s_HighWaterPairs)-1 ; dwIndex != 0; dwIndex --) {
@@ -504,7 +504,7 @@ DWORD   CPdd2450Uart::GetWaterMark()
 }
 
 // Receive
-BOOL    CPdd2450Uart::InitReceive(BOOL bInit)
+BOOL    CPdd3250Uart::InitReceive(BOOL bInit)
 {
     m_HardwareLock.Lock();    
     if (bInit) {         
@@ -513,20 +513,20 @@ BOOL    CPdd2450Uart::InitReceive(BOOL bInit)
             uWarterMarkBit = 3;
         // Setup Receive FIFO.
         // Reset Receive Fifo.
-        DWORD dwBit = m_pReg2450Uart->Read_UFCON();
+        DWORD dwBit = m_pReg3250Uart->Read_UFCON();
         dwBit |= (1<<1);
         dwBit &= ~(1<<0);
-        m_pReg2450Uart->Write_UFCON( dwBit);
+        m_pReg3250Uart->Write_UFCON( dwBit);
         // Set Trigger level to WaterMark.
         dwBit &= ~(3<<4);
         dwBit |= (uWarterMarkBit<<4);
-        m_pReg2450Uart->Write_UFCON(dwBit); 
+        m_pReg3250Uart->Write_UFCON(dwBit); 
         // Enable Receive FIFO.
         dwBit &= ~(1<<1);
         dwBit |= (1<<0);
-        m_pReg2450Uart->Write_UFCON(dwBit); // Xmit Fifo Reset Done..
-        m_pReg2450Uart->Read_UERSTAT(); // Clean Line Interrupt.
-        dwBit = m_pReg2450Uart->Read_UCON();
+        m_pReg3250Uart->Write_UFCON(dwBit); // Xmit Fifo Reset Done..
+        m_pReg3250Uart->Read_UERSTAT(); // Clean Line Interrupt.
+        dwBit = m_pReg3250Uart->Read_UCON();
 #if EPLL_CLK
         // Set UART CLK.
         dwBit &= ~(3 << 10);
@@ -534,18 +534,18 @@ BOOL    CPdd2450Uart::InitReceive(BOOL bInit)
 #endif
         dwBit &= ~(3<<0);
         dwBit |= (1<<0)|(1<<7)|(1<<8); // Enable Rx Timeout and Level Interrupt Trigger.
-        m_pReg2450Uart->Write_UCON(dwBit);
-        EnableInterrupt(S2450UART_INT_RXD | S2450UART_INT_ERR );
+        m_pReg3250Uart->Write_UCON(dwBit);
+        EnableInterrupt(S3250UART_INT_RXD | S3250UART_INT_ERR );
     }
     else {
-        DisableInterrupt(S2450UART_INT_RXD | S2450UART_INT_ERR );
+        DisableInterrupt(S3250UART_INT_RXD | S3250UART_INT_ERR );
     }
     m_HardwareLock.Unlock();
     return TRUE;
 }
-ULONG   CPdd2450Uart::ReceiveInterruptHandler(PUCHAR pRxBuffer,ULONG *pBufflen)
+ULONG   CPdd3250Uart::ReceiveInterruptHandler(PUCHAR pRxBuffer,ULONG *pBufflen)
 {
-    DEBUGMSG(ZONE_THREAD|ZONE_READ,(TEXT("+CPdd2450Uart::ReceiveInterruptHandler pRxBuffer=%x,*pBufflen=%x\r\n"),
+    DEBUGMSG(ZONE_THREAD|ZONE_READ,(TEXT("+CPdd3250Uart::ReceiveInterruptHandler pRxBuffer=%x,*pBufflen=%x\r\n"),
         pRxBuffer,pBufflen!=NULL?*pBufflen:0));
     DWORD dwBytesDropped = 0;
     if (pRxBuffer && pBufflen ) {
@@ -555,17 +555,17 @@ ULONG   CPdd2450Uart::ReceiveInterruptHandler(PUCHAR pRxBuffer,ULONG *pBufflen)
         m_HardwareLock.Lock();
         
         while (dwRoomLeft && !m_bReceivedCanceled) {
-            ULONG ulUFSTATE = m_pReg2450Uart->Read_UFSTAT();
+            ULONG ulUFSTATE = m_pReg3250Uart->Read_UFSTAT();
             DWORD dwNumRxInFifo = (ulUFSTATE & (0x3f<<0));
             if ((ulUFSTATE & (1<<6))!=0) // Overflow. Use FIFO depth (16);
-                dwNumRxInFifo = SER2450_FIFO_DEPTH_RX;
-            DEBUGMSG(ZONE_THREAD|ZONE_READ,(TEXT("CPdd2450Uart::ReceiveInterruptHandler ulUFSTATE=%x,UTRSTAT=%x, dwNumRxInFifo=%X\r\n"),
-                ulUFSTATE, m_pReg2450Uart->Read_UTRSTAT(), dwNumRxInFifo));
+                dwNumRxInFifo = SER3250_FIFO_DEPTH_RX;
+            DEBUGMSG(ZONE_THREAD|ZONE_READ,(TEXT("CPdd3250Uart::ReceiveInterruptHandler ulUFSTATE=%x,UTRSTAT=%x, dwNumRxInFifo=%X\r\n"),
+                ulUFSTATE, m_pReg3250Uart->Read_UTRSTAT(), dwNumRxInFifo));
             if (dwNumRxInFifo) {
-                ASSERT((m_pReg2450Uart->Read_UTRSTAT () & (1<<0))!=0);
+                ASSERT((m_pReg3250Uart->Read_UTRSTAT () & (1<<0))!=0);
                 while (dwNumRxInFifo && dwRoomLeft) {
                     UCHAR uLineStatus = GetLineStatus();
-                    UCHAR uData = m_pReg2450Uart->Read_URXH();
+                    UCHAR uData = m_pReg3250Uart->Read_URXH();
                     if (DataReplaced(&uData,(uLineStatus & UERSTATE_PARITY_ERROR)!=0)) {
                         *pRxBuffer++ = uData;
                         dwRoomLeft--;
@@ -586,11 +586,11 @@ ULONG   CPdd2450Uart::ReceiveInterruptHandler(PUCHAR pRxBuffer,ULONG *pBufflen)
     else {
         ASSERT(FALSE);
     }
-    DEBUGMSG(ZONE_THREAD|ZONE_READ,(TEXT("-CPdd2450Uart::ReceiveInterruptHandler pRxBuffer=%x,*pBufflen=%x,dwBytesDropped=%x\r\n"),
+    DEBUGMSG(ZONE_THREAD|ZONE_READ,(TEXT("-CPdd3250Uart::ReceiveInterruptHandler pRxBuffer=%x,*pBufflen=%x,dwBytesDropped=%x\r\n"),
         pRxBuffer,pBufflen!=NULL?*pBufflen:0,dwBytesDropped));
     return dwBytesDropped;
 }
-ULONG   CPdd2450Uart::CancelReceive()
+ULONG   CPdd3250Uart::CancelReceive()
 {
     m_bReceivedCanceled = TRUE;
     m_HardwareLock.Lock();   
@@ -598,20 +598,20 @@ ULONG   CPdd2450Uart::CancelReceive()
     m_HardwareLock.Unlock();
     return 0;
 }
-BOOL    CPdd2450Uart::InitModem(BOOL bInit)
+BOOL    CPdd3250Uart::InitModem(BOOL bInit)
 {
     m_HardwareLock.Lock();   
-    m_pReg2450Uart->Write_UMCON((1<<0)); // Disable AFC and Set RTS as default.
+    m_pReg3250Uart->Write_UMCON((1<<0)); // Disable AFC and Set RTS as default.
     m_HardwareLock.Unlock();
     return TRUE;
 }
 
-ULONG   CPdd2450Uart::GetModemStatus()
+ULONG   CPdd3250Uart::GetModemStatus()
 {
     m_HardwareLock.Lock();    
     ULONG ulReturn =0 ;
     ULONG Events = 0;
-    UINT8 ubModemStatus = (UINT8) m_pReg2450Uart->Read_UMSTAT();
+    UINT8 ubModemStatus = (UINT8) m_pReg3250Uart->Read_UMSTAT();
     m_HardwareLock.Unlock();
 
     // Event Notification.
@@ -625,37 +625,37 @@ ULONG   CPdd2450Uart::GetModemStatus()
         ulReturn |= MS_CTS_ON;
     return ulReturn;
 }
-void    CPdd2450Uart::SetRTS(BOOL bSet)
+void    CPdd3250Uart::SetRTS(BOOL bSet)
 {
     m_HardwareLock.Lock();
-    ULONG ulData = m_pReg2450Uart->Read_UMCON();
+    ULONG ulData = m_pReg3250Uart->Read_UMCON();
     if (bSet) {
         ulData |= (1<<0);
     }
     else
         ulData &= ~(1<<0);
-    m_pReg2450Uart->Write_UMCON(ulData);
+    m_pReg3250Uart->Write_UMCON(ulData);
     m_HardwareLock.Unlock();
 
 }
-BOOL CPdd2450Uart::InitLine(BOOL bInit)
+BOOL CPdd3250Uart::InitLine(BOOL bInit)
 {
     m_HardwareLock.Lock();
     if  (bInit) {
         // Set 8Bit,1Stop,NoParity,Normal Mode.
-        //m_pReg2450Uart->Write_ULCON( (0x3<<0) | (0<<1) | (0<<3) | (0<<6) );
-        EnableInterrupt( S2450UART_INT_ERR );
+        //m_pReg3250Uart->Write_ULCON( (0x3<<0) | (0<<1) | (0<<3) | (0<<6) );
+        EnableInterrupt( S3250UART_INT_ERR );
     }
     else {
-        DisableInterrupt(S2450UART_INT_ERR );
+        DisableInterrupt(S3250UART_INT_ERR );
     }
     m_HardwareLock.Unlock();
     return TRUE;
 }
-BYTE CPdd2450Uart::GetLineStatus()
+BYTE CPdd3250Uart::GetLineStatus()
 {
     m_HardwareLock.Lock();
-    ULONG ulData = m_pReg2450Uart->Read_UERSTAT();
+    ULONG ulData = m_pReg3250Uart->Read_UERSTAT();
     m_HardwareLock.Unlock();  
     ULONG ulError = 0;
     if (ulData & (1<<0) ) {
@@ -676,29 +676,29 @@ BYTE CPdd2450Uart::GetLineStatus()
     return (UINT8)ulData;
         
 }
-void    CPdd2450Uart::SetBreak(BOOL bSet)
+void    CPdd3250Uart::SetBreak(BOOL bSet)
 {
     m_HardwareLock.Lock();
-    ULONG ulData = m_pReg2450Uart->Read_UCON();
+    ULONG ulData = m_pReg3250Uart->Read_UCON();
     if (bSet)
         ulData |= (1<<4);
     else
         ulData &= ~(1<<4);
-    m_pReg2450Uart->Write_UCON(ulData);
+    m_pReg3250Uart->Write_UCON(ulData);
     m_HardwareLock.Unlock();      
 }
-BOOL    CPdd2450Uart::SetBaudRate(ULONG BaudRate,BOOL /*bIrModule*/)
+BOOL    CPdd3250Uart::SetBaudRate(ULONG BaudRate,BOOL /*bIrModule*/)
 {
     m_HardwareLock.Lock();
-    BOOL bReturn = m_pReg2450Uart->Write_BaudRate(BaudRate);
+    BOOL bReturn = m_pReg3250Uart->Write_BaudRate(BaudRate);
     m_HardwareLock.Unlock();      
     return TRUE;
 }
-BOOL    CPdd2450Uart::SetByteSize(ULONG ByteSize)
+BOOL    CPdd3250Uart::SetByteSize(ULONG ByteSize)
 {
     BOOL bRet = TRUE;
     m_HardwareLock.Lock();
-    ULONG ulData = m_pReg2450Uart->Read_ULCON() & (~0x3);
+    ULONG ulData = m_pReg3250Uart->Read_ULCON() & (~0x3);
     switch ( ByteSize ) {
     case 5: 
         break;
@@ -716,16 +716,16 @@ BOOL    CPdd2450Uart::SetByteSize(ULONG ByteSize)
         break;
     }
     if (bRet) {
-        m_pReg2450Uart->Write_ULCON(ulData);
+        m_pReg3250Uart->Write_ULCON(ulData);
     }
     m_HardwareLock.Unlock();
     return bRet;
 }
-BOOL    CPdd2450Uart::SetParity(ULONG Parity)
+BOOL    CPdd3250Uart::SetParity(ULONG Parity)
 {
     BOOL bRet = TRUE;
     m_HardwareLock.Lock();
-    ULONG ulData = m_pReg2450Uart->Read_ULCON() & (~(0x7<<3));
+    ULONG ulData = m_pReg3250Uart->Read_ULCON() & (~(0x7<<3));
     switch ( Parity ) {
     case ODDPARITY:
         ulData |= (4<<3);
@@ -746,16 +746,16 @@ BOOL    CPdd2450Uart::SetParity(ULONG Parity)
         break;
     }
     if (bRet) {
-        m_pReg2450Uart->Write_ULCON(ulData);
+        m_pReg3250Uart->Write_ULCON(ulData);
     }
     m_HardwareLock.Unlock();
     return bRet;
 }
-BOOL    CPdd2450Uart::SetStopBits(ULONG StopBits)
+BOOL    CPdd3250Uart::SetStopBits(ULONG StopBits)
 {
     BOOL bRet = TRUE;
     m_HardwareLock.Lock();
-    ULONG ulData = m_pReg2450Uart->Read_ULCON() & (~(0x1<<2));
+    ULONG ulData = m_pReg3250Uart->Read_ULCON() & (~(0x1<<2));
 
     switch ( StopBits ) {
     case ONESTOPBIT :
@@ -768,18 +768,18 @@ BOOL    CPdd2450Uart::SetStopBits(ULONG StopBits)
         break;
     }
     if (bRet) {
-        m_pReg2450Uart->Write_ULCON(ulData);
+        m_pReg3250Uart->Write_ULCON(ulData);
     }
     m_HardwareLock.Unlock();
     return bRet;
 }
-void    CPdd2450Uart::SetOutputMode(BOOL UseIR, BOOL Use9Pin)
+void    CPdd3250Uart::SetOutputMode(BOOL UseIR, BOOL Use9Pin)
 {
     m_HardwareLock.Lock();
     CSerialPDD::SetOutputMode(UseIR, Use9Pin);
-    ULONG ulData = m_pReg2450Uart->Read_ULCON() & (~(0x1<<6));
+    ULONG ulData = m_pReg3250Uart->Read_ULCON() & (~(0x1<<6));
     ulData |= (UseIR?(0x1<<6):0);
-    m_pReg2450Uart->Write_ULCON(ulData);
+    m_pReg3250Uart->Write_ULCON(ulData);
     m_HardwareLock.Unlock();
 }
 
