@@ -1,5 +1,4 @@
 ; @CESYSGEN IF COREDLL_SERDEV
-IF BSP_NOSERIAL3 !
 [HKEY_LOCAL_MACHINE\Drivers\BuiltIn\Ser3]
    "Order"=dword:0
    "DeviceArrayIndex"=dword:3
@@ -16,6 +15,5 @@ IF BSP_NOSERIAL3 !
 	"Port"="COM3:" 
 	"DeviceType"=dword:1
 	"FriendlyName"="Hayes Compatible on COM3:"
-ENDIF BSP_NOSERIAL3 !
 ; @CESYSGEN ENDIF COREDLL_SERDEV
 ;-------------------------------------------------------------------------------

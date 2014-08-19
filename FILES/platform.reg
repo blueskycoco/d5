@@ -167,7 +167,8 @@ ENDIF BSP_LPC32XX_SSP1
 IF IMGNOKITL
 	#include "$(_TARGETPLATROOT)\SRC\DRIVERS\NDIS\lpc3250_NDIS.reg"
 ENDIF IMGNOKITL
-
+#include "$(_TARGETPLATROOT)\SRC\DRIVERS\Serial1\serial1.reg"
+#include "$(_TARGETPLATROOT)\SRC\DRIVERS\Serial3\serial3.reg"
 ;-------------------------------------------------------------------------------
 ;-------------------------------------------------------------------------------
 ; @CESYSGEN IF CE_MODULES_WAVEAPI

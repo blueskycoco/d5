@@ -55,9 +55,8 @@ typedef RcvDataBuffer;
 // @doc HWINTERNAL
 // @struct LS_SERIAL_INFO | Passed to serial lib routines.
 // 
-    
-    typedef struct __LS_SERIAL_INFO
-    {
+typedef struct __LS_SERIAL_INFO
+{
          // Store volatile pointers to each 16550 register 
         volatile PULONG pData;           // @field RX data / Transmit Holding Reg
         volatile PULONG pIER;            // @field Interrupt Enable
@@ -69,15 +68,15 @@ typedef RcvDataBuffer;
         volatile PULONG pScratch;        // @field Scratch Register
 
          // And we keep shadows of many of the 16550 registers
-        PULONG		FCR;			// @field FIFO control state. 
-        PULONG		IIR;			// @field State of Interrupt Identification Register. 
-        PULONG		LSR;			// @field Line Status Register. 
-        PULONG		MSR;			// @field Modem Status Register. 
+        ULONG		FCR;			// @field FIFO control state. 
+        ULONG		IIR;			// @field State of Interrupt Identification Register. 
+        ULONG		LSR;			// @field Line Status Register. 
+        ULONG		MSR;			// @field Modem Status Register. 
          // We wouldn't normally shadow these, except for power on/off
-        PULONG		IER;			// @field Interrupt Enable Register. 
-        PULONG		LCR;			// @field Line Control Register. 
-        PULONG		MCR;			// @field Modem Control Register. 
-        PULONG		Scratch;		// @field Scratch Register.
+        ULONG		IER;			// @field Interrupt Enable Register. 
+        ULONG		LCR;			// @field Line Control Register. 
+        ULONG		MCR;			// @field Modem Control Register. 
+        ULONG		Scratch;		// @field Scratch Register.
         
          // We have an event callback into the MDD
         EVENT_FUNC EventCallback; // This callback exists in MDD
@@ -173,8 +172,7 @@ BOOL SL_SetParity(PVOID pHead, ULONG Parity);
         PUCHAR  pRegBase, // Pointer to 16550 register base
         UINT8   RegStride, // Stride amongst the 16550 registers
         EVENT_FUNC EventCallback, // This callback exists in MDD
-        PVOID   pMddHead,   // This is the first parm to callback
-        PLOOKUP_TBL pBaudTable  // Pointer to baud rate table
+        PVOID   pMddHead
         );
 	PVOID SL_Init(
        ULONG   Identifier, // @parm Device identifier.

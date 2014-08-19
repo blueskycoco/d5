@@ -84,14 +84,6 @@ Notes:
 #define LPC32XX_HSU_TX_TL8B			(0x2 << 0)
 #define LPC32XX_HSU_TX_TL16B			(0x3 << 0)
 
-typedef struct {
-	volatile UNS_32 data;
-	volatile UNS_32 level;
-	volatile UNS_32 iir;
-	volatile UNS_32 cr;
-	volatile UNS_32 rcr;
-} UART_REGS_T;
-
 /////////////////////////////////////////////////////////////////////////////////////////
 //// S3C3250 UART Register
 
@@ -281,6 +273,9 @@ public:
 // Line Internal Function
     BYTE            GetLineStatus();
     virtual void    SetOutputMode(BOOL UseIR, BOOL Use9Pin) ;
+	void __serial_uart_flush();
+	void wait_for_xmit_empty();
+	void wait_for_xmit_ready();
 
 protected:
     CReg3250Uart *  m_pReg3250Uart;
@@ -291,17 +286,17 @@ protected:
 public:
     void    DisableInterrupt(DWORD dwInt) { 
         //m_pINTregs->INTSUBMSK |= (dwInt<<m_dwIntShift);
-        Write_CTL(Read_CTL()&(~dwInt));
+        m_pReg3250Uart->Write_CTL(m_pReg3250Uart->Read_CTL()&(~dwInt));
     }
     void    EnableInterrupt(DWORD dwInt) { 
         //m_pINTregs->INTSUBMSK &= ~(dwInt<<m_dwIntShift);
-        Write_CTL(Read_CTL()|dwInt);
+        m_pReg3250Uart->Write_CTL(m_pReg3250Uart->Read_CTL()|dwInt);
     }
     void    ClearInterrupt(DWORD dwInt) {
         //m_pINTregs->SUBSRCPND = (dwInt<<m_dwIntShift);
-        Write_IIR(dwInt);
+        m_pReg3250Uart->Write_IIR(dwInt);
     }
-    DWORD   GetInterruptStatus() { return (Read_IIR();};
+    DWORD   GetInterruptStatus() { return m_pReg3250Uart->Read_IIR();};
    // DWORD   GetIntrruptMask () { return ((~(m_pINTregs->INTSUBMSK) )>> m_dwIntShift); };
     
 protected:

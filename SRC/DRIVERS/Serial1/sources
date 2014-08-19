@@ -12,13 +12,14 @@ SKIPBUILD=1
 !ENDIF
 
 WINCEOEM=1
-TARGETNAME=serial_smdk2450
+TARGETNAME=serial1
 TARGETTYPE=DYNLINK
 RELEASETYPE=PLATFORM
 DEFFILE=serial.def
 DLLENTRY=DllEntry
 
 INCLUDES= \
+	$(INCLUDES);\
     $(_TARGETPLATROOT)\src\inc;
 
 TARGETLIBS= \
@@ -30,5 +31,6 @@ SOURCELIBS= \
     $(_SYSGENOAKROOT)\lib\$(_CPUINDPATH)\com_mdd2.lib
 
 SOURCES= \
-    ser_smdk2450.cpp \
-    pdds3c2450_ser.cpp
+    ser.cpp \
+    pdd_ser.cpp \
+    bsp_clkpwr_support.cpp

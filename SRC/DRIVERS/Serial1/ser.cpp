@@ -30,6 +30,7 @@ Notes:
 #include <serhw.h>
 #include <Serdbg.h>
 #include "pdd_ser.h"
+#include "intr.h"
 class CPdd3250Serial1 : public CPdd3250Uart {
 public:
     CPdd3250Serial1(LPTSTR lpActivePath, PVOID pMdd, PHWOBJ pHwObj)

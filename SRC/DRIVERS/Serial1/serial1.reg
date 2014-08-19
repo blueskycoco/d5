@@ -8,12 +8,12 @@
    "ISTTimeouts"=dword:200	; every 512 ticks checking Modem status.
    "Prefix"="COM"
    "Index"=dword:1
-   "Dll"="serial_smdk2450.dll"
+   "Dll"="serial1.dll"
    "Order"=dword:0
    "Priority"=dword:0
    "Port"="COM1:"
    "DeviceType"=dword:0
-   "FriendlyName"=LOC_DISPLAYNAME_COM1
+   "FriendlyName"="Serial Cable on COM1:"
    "Tsp"="unimodem.dll"
    "IClass"="{CC5195AC-BA49-48a0-BE17-DF6D1B0173DD}"
    "DevConfig"=hex: 10,00, 00,00, 05,00,00,00, 10,01,00,00, 00,4B,00,00, 00,00, 08, 00, 00, 00,00,00,00

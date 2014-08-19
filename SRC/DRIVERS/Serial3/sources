@@ -14,16 +14,16 @@ TARGETTYPE=DYNLINK
 DLLENTRY=DllEntry
 
 INCLUDES=\
+	$(INCLUDES);\
     $(_TARGETPLATROOT)\inc;
 
 SOURCES=\
-	serial.c
+	serial.c \
+	bsp_clkpwr_support.c
 
 SOURCELIBS= \
     $(_COMMONOAKROOT)\lib\$(_CPUINDPATH)\com_mdd2.lib
 
 TARGETLIBS= \
     $(_COMMONOAKROOT)\lib\$(_CPUINDPATH)\ceddk.lib \
-    $(_COMMONSDKROOT)\lib\$(_CPUINDPATH)\coredll.lib \
-    $(_TARGETPLATROOT)\lib\$(_CPUDEPPATH)\bsp_clkpwr_support.lib
-
+    $(_COMMONSDKROOT)\lib\$(_CPUINDPATH)\coredll.lib

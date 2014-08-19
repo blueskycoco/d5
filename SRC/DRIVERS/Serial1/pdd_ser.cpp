@@ -30,7 +30,7 @@ Notes:
 #include <bsp.h>
 #include <ddkreg.h>
 #include <serhw.h>
-#include <Serdbg.h>
+//#include <Serdbg.h>
 #include "pdd_ser.h"
 //#include <pdds3c3250_ser.h>
 //#include <s3c3250_base_regs.h>
@@ -77,7 +77,7 @@ void CReg3250Uart::Restore()
         m_fIsBackedUp = FALSE;
     }
 }
-CReg3250Uart::Write_BaudRate(ULONG BaudRate)
+BOOL CReg3250Uart::Write_BaudRate(ULONG BaudRate)
 {
 	UINT32 basepclk;
 	UINT32 div, goodrate, hsu_rate, l_hsu_rate, comprate;
@@ -99,9 +99,9 @@ CReg3250Uart::Write_BaudRate(ULONG BaudRate)
 
 	while (hsu_rate < l_hsu_rate) {
 		comprate = basepclk / ((hsu_rate + 1) * 14);
-		if (abs(comprate - BaudRate) < rate_diff) {
+		if ((UINT32)abs(comprate - BaudRate) < rate_diff) {
 			goodrate = hsu_rate;
-			rate_diff = abs(comprate - BaudRate);
+			rate_diff = (UINT32)abs(comprate - BaudRate);
 		}
 
 		hsu_rate++;
@@ -109,6 +109,7 @@ CReg3250Uart::Write_BaudRate(ULONG BaudRate)
 	if (hsu_rate > 0xFF)
 		hsu_rate = 0xFF;
 	Write_RCTL(goodrate);
+	return TRUE;
 }
 #ifdef DEBUG
 void CReg3250Uart::DumpRegister()
@@ -591,7 +592,7 @@ ULONG   CPdd3250Uart::ReceiveInterruptHandler(PUCHAR pRxBuffer,ULONG *pBufflen)
 				/* Framing error */
 				//__raw_writel(LPC32XX_HSU_FE_INT,
 				//LPC32XX_HSUART_IIR(port->membase));
-				m_pReg3250Uart->Write_IIR(LPC32XX_HSU_FE_INT)
+				m_pReg3250Uart->Write_IIR(LPC32XX_HSU_FE_INT);
 				//port->icount.frame++;
 				//flag = TTY_FRAME;
 				//tty_insert_flip_char(port->state->port.tty, 0,
@@ -712,10 +713,10 @@ void    CPdd3250Uart::SetBreak(BOOL bSet)
    // ULONG ulData = m_pReg3250Uart->Read_UCON();
     if (bSet)
        // ulData |= (1<<4);
-       m_pReg3250Uart->Write_CTL(Read_CTL()|LPC32XX_HSU_BREAK);
+       m_pReg3250Uart->Write_CTL(m_pReg3250Uart->Read_CTL()|LPC32XX_HSU_BREAK);
     else
        // ulData &= ~(1<<4);
-              m_pReg3250Uart->Write_CTL(Read_CTL()&(~LPC32XX_HSU_BREAK));
+              m_pReg3250Uart->Write_CTL(m_pReg3250Uart->Read_CTL()&(~LPC32XX_HSU_BREAK));
     //m_pReg3250Uart->Write_UCON(ulData);
     m_HardwareLock.Unlock();      
 }

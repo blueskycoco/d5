@@ -90,7 +90,9 @@ the CS around all register accesses.
 #include <excpt.h>
 #include "lpc32xx_uart.h"
 #include "lpc32xx_clkpwr.h"
+#include "lpc32xx_intc.h"
 #include "clkpwr_support.h"
+#include "intr.h"
 #include "isr.h"
 #include "hw.h"
 #include "serial.h"
@@ -374,8 +376,9 @@ VOID set_div(UINT32 baud)
 		UNS_32 divy; // For x/y
 	} UART_CLKDIV_T;
 	UART_CLKDIV_T div;
-
-	pClkpwr = (CLKPWR_REGS_T *) OALPAtoVA((UINT32) CLKPWR, FALSE);
+	PHYSICAL_ADDRESS phBase; 
+	phBase.QuadPart = CLK_PM_BASE;
+	pClkpwr = (CLKPWR_REGS_T *)MmMapIoSpace(phBase, sizeof(CLKPWR_REGS_T), FALSE);// OALPAtoVA((UINT32) CLKPWR, FALSE);
 
 	// Get base clock for UART
 	basepclk = (INT32)(clkpwr_get_base_clock_rate(CLKPWR_PERIPH_CLK) >> 4);
@@ -743,7 +746,8 @@ Ser_GetRegistryData(PSER_INFO pHWHead, LPCTSTR regKeyPath)
 			{
 				volatile UINT32 tmp;
 				UART_CNTL_REGS_T *pUARTCntlRegs;	
-				pUARTCntlRegs = (UART_CNTL_REGS_T *) OALPAtoVA((UINT32) UARTCNTL,FALSE);
+				phBase.QuadPart = UART_CTRL_BASE;
+				pUARTCntlRegs = (UART_CNTL_REGS_T *)MmMapIoSpace(phBase, sizeof(UART_CNTL_REGS_T), FALSE);//OALPAtoVA((UINT32) UARTCNTL,FALSE);
 				clkpwr_clk_en_dis(CLKPWR_UART3_CLK, 1);
 				tmp = pUARTCntlRegs->clkmode & UART_CLKMODE_MASK(3);
 				pUARTCntlRegs->clkmode = (tmp |	UART_CLKMODE_LOAD(UART_CLKMODE_AUTO, (3)));	
@@ -804,14 +808,14 @@ SL_Init2(
 	pHWHead->ChipID = CHIP_ID_16550;
 
 	// Set up pointers to 16550 registers
-	pHWHead->pData    = pRegBase + (RegStride * RECEIVE_BUFFER_REGISTER);
-	pHWHead->pIER     = pRegBase + (RegStride * INTERRUPT_ENABLE_REGISTER);
-	pHWHead->pIIR_FCR = pRegBase + (RegStride * INTERRUPT_IDENT_REGISTER);
-	pHWHead->pLCR     = pRegBase + (RegStride * LINE_CONTROL_REGISTER);
-	pHWHead->pMCR     = pRegBase + (RegStride * MODEM_CONTROL_REGISTER);
-	pHWHead->pLSR     = pRegBase + (RegStride * LINE_STATUS_REGISTER);
-	pHWHead->pMSR     = pRegBase + (RegStride * MODEM_STATUS_REGISTER);
-	pHWHead->pScratch = pRegBase + (RegStride * SCRATCH_REGISTER);
+	pHWHead->pData    = (PULONG)(pRegBase + (RegStride * RECEIVE_BUFFER_REGISTER));
+	pHWHead->pIER     = (PULONG)(pRegBase + (RegStride * INTERRUPT_ENABLE_REGISTER));
+	pHWHead->pIIR_FCR = (PULONG)(pRegBase + (RegStride * INTERRUPT_IDENT_REGISTER));
+	pHWHead->pLCR     = (PULONG)(pRegBase + (RegStride * LINE_CONTROL_REGISTER));
+	pHWHead->pMCR     = (PULONG)(pRegBase + (RegStride * MODEM_CONTROL_REGISTER));
+	pHWHead->pLSR     = (PULONG)(pRegBase + (RegStride * LINE_STATUS_REGISTER));
+	pHWHead->pMSR     = (PULONG)(pRegBase + (RegStride * MODEM_STATUS_REGISTER));
+	pHWHead->pScratch = (PULONG)(pRegBase + (RegStride * SCRATCH_REGISTER));
 
 	// Store info for callback function
 	pHWHead->EventCallback = EventCallback;
@@ -889,7 +893,7 @@ SL_Init(
 	pHWHead->CommProp.dwReserved1		= 0;
 	pHWHead->CommProp.dwMaxTxQueue		= 16;
 	pHWHead->CommProp.dwMaxRxQueue		= 16;
-	pHWHead->CommProp.dwMaxBaud			= BAUD_460800;
+	pHWHead->CommProp.dwMaxBaud			= BAUD_USER;
 	pHWHead->CommProp.dwProvSubType		= PST_RS232;
 
 	pHWHead->CommProp.dwProvCapabilities =PCF_DTRDSR | PCF_INTTIMEOUTS | PCF_PARITY_CHECK | PCF_RLSD | 
@@ -898,7 +902,7 @@ SL_Init(
 
 	pHWHead->CommProp.dwSettableBaud	=BAUD_075 | BAUD_110 | BAUD_150 | BAUD_300 | BAUD_600 | BAUD_1200 | 
 		BAUD_1800 | BAUD_2400 | BAUD_4800 | BAUD_7200 | BAUD_9600 | BAUD_14400 |
-		BAUD_19200 | BAUD_38400 | BAUD_57600 | BAUD_115200 | BAUD_230400 | BAUD_460800;
+		BAUD_19200 | BAUD_38400 | BAUD_57600 | BAUD_115200 | BAUD_USER;
 
 	pHWHead->CommProp.dwSettableParams	=SP_BAUD | SP_DATABITS | SP_HANDSHAKING | SP_PARITY |
 		SP_PARITY_CHECK | SP_RLSD | SP_STOPBITS;
@@ -2120,7 +2124,7 @@ SL_GetModemStatus(
 		)
 {
 	PSER16550_INFO pHWHead = (PSER16550_INFO)pHead;
-	UINT8 ubModemStatus;
+	UINT32 ubModemStatus;
 
 
 	DEBUGMSG (ZONE_FUNCTION,
@@ -2161,7 +2165,7 @@ SL_GetCommProperties(PVOID pContext, COMMPROP *pCommProp)
 	pCommProp->dwServiceMask = SP_SERIALCOMM;
 	pCommProp->dwMaxTxQueue = 16;
 	pCommProp->dwMaxRxQueue = 16;
-	pCommProp->dwMaxBaud = BAUD_460800;
+	pCommProp->dwMaxBaud = BAUD_USER;
 	pCommProp->dwProvSubType = PST_RS232;
 
 	pCommProp->dwProvCapabilities = PCF_DTRDSR | PCF_INTTIMEOUTS | PCF_PARITY_CHECK | PCF_RLSD | 
@@ -2173,7 +2177,7 @@ SL_GetCommProperties(PVOID pContext, COMMPROP *pCommProp)
 
 	pCommProp->dwSettableBaud = BAUD_075 | BAUD_110 | BAUD_150 | BAUD_300 | BAUD_600 | BAUD_1200 | 
 		BAUD_1800 | BAUD_2400 | BAUD_4800 | BAUD_7200 | BAUD_9600 | BAUD_14400 |
-		BAUD_19200 | BAUD_38400 | BAUD_57600 | BAUD_115200 | BAUD_230400 | BAUD_460800;
+		BAUD_19200 | BAUD_38400 | BAUD_57600 | BAUD_115200 | BAUD_USER;
 	pCommProp->wSettableData = DATABITS_5 | DATABITS_6 | DATABITS_7 | DATABITS_8;
 
 	pCommProp->wSettableStopParity = STOPBITS_10 | STOPBITS_20 |
