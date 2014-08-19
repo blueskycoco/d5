@@ -135,7 +135,7 @@ typedef struct __LS_SERIAL_INFO
         DWORD       dwSysIntr;       // @field System Interrupt number for this peripheral
         DWORD       dwDevIndex;     // @field Index of device
 
-        PUCHAR      pBaseAddress;   // @field Start of serial registers - mapped
+        PULONG      pBaseAddress;   // @field Start of serial registers - mapped
 
         UINT8       cOpenCount;     // @field Count of concurrent opens
         COMMPROP    CommProp;       // @field Pointer to CommProp structure.
@@ -169,7 +169,7 @@ BOOL SL_SetParity(PVOID pHead, ULONG Parity);
 
      VOID SL_Init2(
         PVOID   pHead, //  points to device head
-        PUCHAR  pRegBase, // Pointer to 16550 register base
+        PULONG  pRegBase, // Pointer to 16550 register base
         UINT8   RegStride, // Stride amongst the 16550 registers
         EVENT_FUNC EventCallback, // This callback exists in MDD
         PVOID   pMddHead

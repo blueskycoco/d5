@@ -382,7 +382,7 @@ VOID set_div(UINT32 baud)
 
 	// Get base clock for UART
 	basepclk = (INT32)(clkpwr_get_base_clock_rate(CLKPWR_PERIPH_CLK) >> 4);
-
+	RETAILMSG(1,(TEXT("pclk is %d\r\n"),basepclk));
 	// Find the best divider
 	div.divx = div.divy = 0;
 	savedclkrate = 0;
@@ -749,9 +749,11 @@ Ser_GetRegistryData(PSER_INFO pHWHead, LPCTSTR regKeyPath)
 				phBase.QuadPart = UART_CTRL_BASE;
 				pUARTCntlRegs = (UART_CNTL_REGS_T *)MmMapIoSpace(phBase, sizeof(UART_CNTL_REGS_T), FALSE);//OALPAtoVA((UINT32) UARTCNTL,FALSE);
 				clkpwr_clk_en_dis(CLKPWR_UART3_CLK, 1);
+				RETAILMSG(1,(TEXT("Ser_GetRegistryData UART3 old clkmode %x, ctl %x\r\n"),pUARTCntlRegs->clkmode,pUARTCntlRegs->ctrl));
 				tmp = pUARTCntlRegs->clkmode & UART_CLKMODE_MASK(3);
-				pUARTCntlRegs->clkmode = (tmp |	UART_CLKMODE_LOAD(UART_CLKMODE_AUTO, (3)));	
+				pUARTCntlRegs->clkmode = (tmp |UART_CLKMODE_LOAD(UART_CLKMODE_AUTO, (3)));					
 				pUARTCntlRegs->ctrl |= UART_U3_MD_CTRL_EN;	//need test and check
+				RETAILMSG(1,(TEXT("Ser_GetRegistryData UART3 new clkmode %x, ctl %x\r\n"),pUARTCntlRegs->clkmode,pUARTCntlRegs->ctrl));
 				phBase.QuadPart = UART3_BASE;//0x29000000;
 				irq = IRQ_UART_IIR3;
 				pHWHead->dwSysIntr = OAL_INTR_IRQ_UART3;
@@ -795,7 +797,7 @@ Ser_GetRegistryData(PSER_INFO pHWHead, LPCTSTR regKeyPath)
 	VOID
 SL_Init2(
 		PVOID   pHead, // @parm points to device head
-		PUCHAR  pRegBase, // Pointer to 16550 register base
+		PULONG  pRegBase, // Pointer to 16550 register base
 		UINT8   RegStride, // Stride amongst the 16550 registers
 		EVENT_FUNC EventCallback, // This callback exists in MDD
 		PVOID   pMddHead

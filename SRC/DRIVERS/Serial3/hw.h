@@ -35,6 +35,7 @@ extern "C" {
 // Offsets from the base register address of the
 // various registers for the 8250/16440 family of UARTS.
 //
+#if 0
 #define RECEIVE_BUFFER_REGISTER    		0x00
 #define TRANSMIT_HOLDING_REGISTER  	0x00
 #define INTERRUPT_ENABLE_REGISTER  	0x04
@@ -47,7 +48,20 @@ extern "C" {
 #define SCRATCH_REGISTER	       		0x1c
 #define DIVISOR_LATCH_LSB	       		0x00
 #define DIVISOR_LATCH_MSB	       		0x04
-
+#else
+#define RECEIVE_BUFFER_REGISTER    		0x00
+#define TRANSMIT_HOLDING_REGISTER  		0x00
+#define DIVISOR_LATCH_LSB	       	0x00
+#define INTERRUPT_ENABLE_REGISTER  		0x01
+#define DIVISOR_LATCH_MSB	       	0x01
+#define INTERRUPT_IDENT_REGISTER   		0x02
+#define FIFO_CONTROL_REGISTER	   		0x02
+#define LINE_CONTROL_REGISTER	   		0x03
+#define MODEM_CONTROL_REGISTER	   	0x04
+#define LINE_STATUS_REGISTER	   		0x05
+#define MODEM_STATUS_REGISTER	   		0x06
+#define SCRATCH_REGISTER	       	0x07
+#endif
 
 //
 // All 16550's have the same FIFO depth
