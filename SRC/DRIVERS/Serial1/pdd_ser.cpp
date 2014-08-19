@@ -550,14 +550,15 @@ ULONG   CPdd3250Uart::ReceiveInterruptHandler(PUCHAR pRxBuffer,ULONG *pBufflen)
     DEBUGMSG(ZONE_THREAD|ZONE_READ,(TEXT("+CPdd3250Uart::ReceiveInterruptHandler pRxBuffer=%x,*pBufflen=%x\r\n"),
         pRxBuffer,pBufflen!=NULL?*pBufflen:0));
     DWORD dwBytesDropped = 0;
+	unsigned int tmp;
     if (pRxBuffer && pBufflen ) {
         DWORD dwBytesStored = 0 ;
         DWORD dwRoomLeft = *pBufflen;
         m_bReceivedCanceled = FALSE;
         m_HardwareLock.Lock();
-        
-        while (dwRoomLeft && !m_bReceivedCanceled) {
-            ULONG ulUFSTATE = m_pReg3250Uart->Read_UFSTAT();
+        tmp = m_pReg3250Uart->Read_DATA();
+        while (dwRoomLeft && !m_bReceivedCanceled && !(tmp & LPC32XX_HSU_RX_EMPTY)) {
+            /*ULONG ulUFSTATE = m_pReg3250Uart->Read_UFSTAT();
             DWORD dwNumRxInFifo = (ulUFSTATE & (0x3f<<0));
             if ((ulUFSTATE & (1<<6))!=0) // Overflow. Use FIFO depth (16);
                 dwNumRxInFifo = SER3250_FIFO_DEPTH_RX;
@@ -577,7 +578,34 @@ ULONG   CPdd3250Uart::ReceiveInterruptHandler(PUCHAR pRxBuffer,ULONG *pBufflen)
                 }
             }
             else
-                break;
+                break;*/
+		
+
+		/* Read data from FIFO and push into terminal */
+		
+//		while (!(tmp & LPC32XX_HSU_RX_EMPTY)) {
+			//flag = TTY_NORMAL;
+			//port->icount.rx++;
+
+			if (tmp & LPC32XX_HSU_ERROR_DATA) {
+				/* Framing error */
+				//__raw_writel(LPC32XX_HSU_FE_INT,
+				//LPC32XX_HSUART_IIR(port->membase));
+				m_pReg3250Uart->Write_IIR(LPC32XX_HSU_FE_INT)
+				//port->icount.frame++;
+				//flag = TTY_FRAME;
+				//tty_insert_flip_char(port->state->port.tty, 0,
+				//TTY_FRAME);
+				//tty_schedule_flip(port->state->port.tty);
+			}else{
+
+			//tty_insert_flip_char(port->state->port.tty, (tmp & 0xFF),flag);
+			*pRxBuffer++ = tmp & 0xFF;
+                       dwRoomLeft--;
+			  dwBytesStored++;       
+					}
+			tmp = m_pReg3250Uart->Read_DATA();
+	//	}
         }
         if (m_bReceivedCanceled)
             dwBytesStored = 0;
@@ -613,9 +641,9 @@ ULONG   CPdd3250Uart::GetModemStatus()
     m_HardwareLock.Lock();    
     ULONG ulReturn =0 ;
     ULONG Events = 0;
-    UINT8 ubModemStatus = (UINT8) m_pReg3250Uart->Read_UMSTAT();
+//    UINT8 ubModemStatus = (UINT8) m_pReg3250Uart->Read_UMSTAT();
     m_HardwareLock.Unlock();
-
+/*
     // Event Notification.
     if (ubModemStatus & (1<<2))
         Events |= EV_CTS;
@@ -625,18 +653,20 @@ ULONG   CPdd3250Uart::GetModemStatus()
     // Report Modem Status;
     if ( ubModemStatus & (1<<0) )
         ulReturn |= MS_CTS_ON;
+*/
     return ulReturn;
 }
 void    CPdd3250Uart::SetRTS(BOOL bSet)
 {
     m_HardwareLock.Lock();
-    ULONG ulData = m_pReg3250Uart->Read_UMCON();
+    /*ULONG ulData = m_pReg3250Uart->Read_UMCON();
     if (bSet) {
         ulData |= (1<<0);
     }
     else
         ulData &= ~(1<<0);
     m_pReg3250Uart->Write_UMCON(ulData);
+*/
     m_HardwareLock.Unlock();
 
 }
@@ -655,22 +685,22 @@ BOOL CPdd3250Uart::InitLine(BOOL bInit)
 BYTE CPdd3250Uart::GetLineStatus()
 {
     m_HardwareLock.Lock();
-    ULONG ulData = m_pReg3250Uart->Read_UERSTAT();
+    ULONG ulData = m_pReg3250Uart->Read_IIR();
     m_HardwareLock.Unlock();  
     ULONG ulError = 0;
-    if (ulData & (1<<0) ) {
+    if (ulData & LPC32XX_HSU_RX_OE_INT ) {
         ulError |=  CE_OVERRUN;
     }
-    if (ulData & (1<<1)) {
-        ulError |= CE_RXPARITY;
-    }
-    if (ulData & (1<<2)) {
+  //  if (ulData & (1<<1)) {
+  //      ulError |= CE_RXPARITY;
+  //  }
+    if (ulData & LPC32XX_HSU_FE_INT) {
         ulError |=  CE_FRAME;
     }
     if (ulError)
         SetReceiveError(ulError);
     
-    if (ulData & (1<<3)) {
+    if (ulData & LPC32XX_HSU_BRK_INT) {
          EventCallback(EV_BREAK);
     }
     return (UINT8)ulData;
@@ -679,12 +709,14 @@ BYTE CPdd3250Uart::GetLineStatus()
 void    CPdd3250Uart::SetBreak(BOOL bSet)
 {
     m_HardwareLock.Lock();
-    ULONG ulData = m_pReg3250Uart->Read_UCON();
+   // ULONG ulData = m_pReg3250Uart->Read_UCON();
     if (bSet)
-        ulData |= (1<<4);
+       // ulData |= (1<<4);
+       m_pReg3250Uart->Write_CTL(Read_CTL()|LPC32XX_HSU_BREAK);
     else
-        ulData &= ~(1<<4);
-    m_pReg3250Uart->Write_UCON(ulData);
+       // ulData &= ~(1<<4);
+              m_pReg3250Uart->Write_CTL(Read_CTL()&(~LPC32XX_HSU_BREAK));
+    //m_pReg3250Uart->Write_UCON(ulData);
     m_HardwareLock.Unlock();      
 }
 BOOL    CPdd3250Uart::SetBaudRate(ULONG BaudRate,BOOL /*bIrModule*/)
@@ -698,7 +730,7 @@ BOOL    CPdd3250Uart::SetByteSize(ULONG ByteSize)
 {
     BOOL bRet = TRUE;
     m_HardwareLock.Lock();
-    ULONG ulData = m_pReg3250Uart->Read_ULCON() & (~0x3);
+   /* ULONG ulData = m_pReg3250Uart->Read_ULCON() & (~0x3);
     switch ( ByteSize ) {
     case 5: 
         break;
@@ -717,7 +749,7 @@ BOOL    CPdd3250Uart::SetByteSize(ULONG ByteSize)
     }
     if (bRet) {
         m_pReg3250Uart->Write_ULCON(ulData);
-    }
+    }*/
     m_HardwareLock.Unlock();
     return bRet;
 }
@@ -725,7 +757,7 @@ BOOL    CPdd3250Uart::SetParity(ULONG Parity)
 {
     BOOL bRet = TRUE;
     m_HardwareLock.Lock();
-    ULONG ulData = m_pReg3250Uart->Read_ULCON() & (~(0x7<<3));
+    /*ULONG ulData = m_pReg3250Uart->Read_ULCON() & (~(0x7<<3));
     switch ( Parity ) {
     case ODDPARITY:
         ulData |= (4<<3);
@@ -747,7 +779,7 @@ BOOL    CPdd3250Uart::SetParity(ULONG Parity)
     }
     if (bRet) {
         m_pReg3250Uart->Write_ULCON(ulData);
-    }
+    }*/
     m_HardwareLock.Unlock();
     return bRet;
 }
@@ -755,7 +787,7 @@ BOOL    CPdd3250Uart::SetStopBits(ULONG StopBits)
 {
     BOOL bRet = TRUE;
     m_HardwareLock.Lock();
-    ULONG ulData = m_pReg3250Uart->Read_ULCON() & (~(0x1<<2));
+  /*  ULONG ulData = m_pReg3250Uart->Read_ULCON() & (~(0x1<<2));
 
     switch ( StopBits ) {
     case ONESTOPBIT :
@@ -769,17 +801,18 @@ BOOL    CPdd3250Uart::SetStopBits(ULONG StopBits)
     }
     if (bRet) {
         m_pReg3250Uart->Write_ULCON(ulData);
-    }
+    }*/
     m_HardwareLock.Unlock();
     return bRet;
 }
 void    CPdd3250Uart::SetOutputMode(BOOL UseIR, BOOL Use9Pin)
 {
     m_HardwareLock.Lock();
-    CSerialPDD::SetOutputMode(UseIR, Use9Pin);
+    /*CSerialPDD::SetOutputMode(UseIR, Use9Pin);
     ULONG ulData = m_pReg3250Uart->Read_ULCON() & (~(0x1<<6));
     ulData |= (UseIR?(0x1<<6):0);
     m_pReg3250Uart->Write_ULCON(ulData);
+*/
     m_HardwareLock.Unlock();
 }
 
