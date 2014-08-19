@@ -82,7 +82,7 @@ CReg3250Uart::Write_BaudRate(ULONG BaudRate)
 	UINT32 basepclk;
 	UINT32 div, goodrate, hsu_rate, l_hsu_rate, comprate;
 	UINT32 rate_diff;
-    	RETAILMSG(1, (TEXT("SetBaudRate -> %d\r\n"), BaudRate));
+    	RETAILMSG(1, (TEXT("Write_BaudRate -> %d\r\n"), BaudRate));
 
 	// Get base clock for UART
 	basepclk = (INT32)(clkpwr_get_base_clock_rate(CLKPWR_PERIPH_CLK) >> 4);
@@ -254,7 +254,6 @@ void CPdd3250Uart::PostInit()
     DWORD dwCount=0;
     m_HardwareLock.Lock();
     __serial_uart_flush();
-    m_pReg3250Uart->Write_CTL(0); // Set to Default;
     DisableInterrupt(LPC32XX_HSU_RX_INT_EN | LPC32XX_HSU_TX_INT_EN | LPC32XX_HSU_ERR_INT_EN);
     // Mask all interrupt.
     while ((GetInterruptStatus() & (LPC32XX_HSU_TX_INT | LPC32XX_HSU_FE_INT|LPC32XX_HSU_BRK_INT|LPC32XX_HSU_RX_OE_INT))!=0 && 
@@ -264,7 +263,8 @@ void CPdd3250Uart::PostInit()
         ClearInterrupt(LPC32XX_HSU_TX_INT | LPC32XX_HSU_FE_INT|LPC32XX_HSU_BRK_INT|LPC32XX_HSU_RX_OE_INT);
         dwCount++;
     }
-    ASSERT((GetInterruptStatus() & (LPC32XX_HSU_TX_INT | LPC32XX_HSU_FE_INT|LPC32XX_HSU_BRK_INT|LPC32XX_HSU_RX_OE_INT))==0);
+    ASSERT((GetInterruptStatus() & (LPC32XX_HSU_TX_INT | LPC32XX_HSU_FE_INT|LPC32XX_HSU_BRK_INT|LPC32XX_HSU_RX_OE_INT))==0);	
+    m_pReg3250Uart->Write_CTL(LPC32XX_HSU_TX_TL8B | LPC32XX_HSU_RX_TL32B |LPC32XX_HSU_OFFSET(20) | LPC32XX_HSU_TMO_INACT_4B); // Set to Default;    
     // IST Start to Run.
     m_HardwareLock.Unlock();
     CSerialPDD::PostInit();
@@ -281,20 +281,20 @@ DWORD CPdd3250Uart::ThreadRun()
         if ( WaitForSingleObject( m_hISTEvent, m_dwISTTimeout) == WAIT_OBJECT_0) {
             m_HardwareLock.Lock();    
             while ( !IsTerminated() ) {
-                DWORD dwData = ( GetInterruptStatus() & (S3250UART_INT_RXD | S3250UART_INT_TXD | S3250UART_INT_ERR) );
-                DWORD dwMask = ( GetIntrruptMask() & (S3250UART_INT_RXD | S3250UART_INT_TXD | S3250UART_INT_ERR));
+                DWORD dwData = ( GetInterruptStatus() & (LPC32XX_HSU_BRK_INT | LPC32XX_HSU_FE_INT | LPC32XX_HSU_RX_OE_INT|LPC32XX_HSU_RX_TIMEOUT_INT | LPC32XX_HSU_RX_TRIG_INT|LPC32XX_HSU_TX_INT) );
+                //DWORD dwMask = ( GetIntrruptMask() & (S3250UART_INT_RXD | S3250UART_INT_TXD | S3250UART_INT_ERR));
                  DEBUGMSG(ZONE_THREAD,
-                      (TEXT(" CPdd3250Uart::ThreadRun INT=%x, MASK =%x\r\n"),dwData,dwMask));
-                dwMask &= dwData;
-                if (dwMask) {
+                      (TEXT(" CPdd3250Uart::ThreadRun INT=%x\r\n"),dwData));
+                //dwMask &= dwData;
+                if (dwData) {
                     DEBUGMSG(ZONE_THREAD,
-                      (TEXT(" CPdd3250Uart::ThreadRun Active INT=%x\r\n"),dwMask));
+                      (TEXT(" CPdd3250Uart::ThreadRun Active INT=%x\r\n"),dwData));
                     DWORD interrupts=INTR_MODEM; // Always check Modem when we have change. It may work at polling mode.
-                    if ((dwMask & S3250UART_INT_RXD)!=0)
+                    if ((dwData & (LPC32XX_HSU_RX_TIMEOUT_INT | LPC32XX_HSU_RX_TRIG_INT))!=0)
                         interrupts |= INTR_RX;
-                    if ((dwMask & S3250UART_INT_TXD)!=0)
+                    if ((dwData & LPC32XX_HSU_TX_INT)!=0)
                         interrupts |= INTR_TX;
-                    if ((dwMask & S3250UART_INT_ERR)!=0) 
+                    if ((dwData & (LPC32XX_HSU_BRK_INT | LPC32XX_HSU_FE_INT | LPC32XX_HSU_RX_OE_INT))!=0) 
                         interrupts |= INTR_LINE | INTR_RX;
                     NotifyPDDInterrupt( (INTERRUPT_TYPE)interrupts );
                     ClearInterrupt(dwData);
@@ -320,18 +320,42 @@ BOOL CPdd3250Uart::InitialEnableInterrupt(BOOL bEnable )
 {
     m_HardwareLock.Lock();
     if (bEnable) 
-        EnableInterrupt(S3250UART_INT_RXD | S3250UART_INT_ERR );
+        EnableInterrupt(LPC32XX_HSU_RX_INT_EN | LPC32XX_HSU_ERR_INT_EN);
     else
-        DisableInterrupt(S3250UART_INT_RXD | S3250UART_INT_ERR );
+        DisableInterrupt(LPC32XX_HSU_RX_INT_EN | LPC32XX_HSU_ERR_INT_EN);
     m_HardwareLock.Unlock();
     return TRUE;
 }
+void CPdd3250Uart::wait_for_xmit_empty()
+{
+	unsigned int timeout = 10000;
 
+	do {
+		if (LPC32XX_HSU_TX_LEV(m_pReg3250Uart->Read_LEVEL()) == 0)
+			break;
+		if (--timeout == 0)
+			break;
+		Sleep(1);
+	} while (1);
+}
+
+void CPdd3250Uart::wait_for_xmit_ready()
+{
+	unsigned int timeout = 10000;
+
+	while (1) {
+		if (LPC32XX_HSU_TX_LEV(m_pReg3250Uart->Read_LEVEL()) < 32)
+			break;
+		if (--timeout == 0)
+			break;
+		Sleep(1);
+	}
+}
 BOOL  CPdd3250Uart::InitXmit(BOOL bInit)
 {
     if (bInit) { 
         m_HardwareLock.Lock();    
-        DWORD dwBit = m_pReg3250Uart->Read_UCON();
+    /*    DWORD dwBit = m_pReg3250Uart->Read_UCON();
 #if EPLL_CLK
         // Set UART CLK.
         dwBit &= ~(3 << 10);
@@ -356,31 +380,24 @@ BOOL  CPdd3250Uart::InitXmit(BOOL bInit)
         // Enable Xmit FIFO.
         dwBit &= ~(1<<2);
         dwBit |= (1<<0);
-        m_pReg3250Uart->Write_UFCON(dwBit); // Xmit Fifo Reset Done..
+        m_pReg3250Uart->Write_UFCON(dwBit); // Xmit Fifo Reset Done..*/
+	wait_for_xmit_ready();
+	EnableInterrupt(LPC32XX_HSU_TX_INT_EN);
         m_HardwareLock.Unlock();
     }
     else { // Make Sure data has been trasmit out.
-        // We have to make sure the xmit is complete because MDD will shut donw the device after this return
-        DWORD dwTicks = 0;
-        DWORD dwUTRState;
-        while (dwTicks < 1000 && 
-                (((dwUTRState = m_pReg3250Uart->Read_UTRSTAT())>>1) & 3)!=3  ) { // Transmitter empty is not true
-            DEBUGMSG(ZONE_THREAD|ZONE_WRITE, (TEXT("CPdd3250Uart::InitXmit! Wait for UTRSTAT=%x clear.\r\n"), dwUTRState));
-            Sleep(5);
-            dwTicks +=5;
-        }
+        	// We have to make sure the xmit is complete because MDD will shut donw the device after this return
+        	wait_for_xmit_empty();
+		DisableInterrupt(LPC32XX_HSU_TX_INT_EN);
     }
     return TRUE;
 }
 DWORD   CPdd3250Uart::GetWriteableSize()
 {
     DWORD dwWriteSize = 0;
-    DWORD dwUfState = m_pReg3250Uart->Read_UFSTAT() ;
-    if ((dwUfState& (1<<14))==0) { // It is not full.
-        dwUfState = ((dwUfState>>8) & 0x3f); // It is fifo count.
-        if (dwUfState < SER3250_FIFO_DEPTH_TX-1)
-            dwWriteSize = SER3250_FIFO_DEPTH_TX-1 - dwUfState;
-    }
+    DWORD dwUfState = LPC32XX_HSU_TX_LEV(m_pReg3250Uart->Read_LEVEL());
+    
+    dwWriteSize=64-dwUfState;
     return dwWriteSize;
 }
 void    CPdd3250Uart::XmitInterruptHandler(PUCHAR pTxBuffer, ULONG *pBuffLen)
@@ -398,7 +415,7 @@ void    CPdd3250Uart::XmitInterruptHandler(PUCHAR pTxBuffer, ULONG *pBuffLen)
 
         Rx_Pause(TRUE);
         if ((m_DCB.fOutxCtsFlow && IsCTSOff()) ||(m_DCB.fOutxDsrFlow && IsDSROff())) { // We are in flow off
-            DEBUGMSG(ZONE_THREAD|ZONE_WRITE, (TEXT("CPdd3250Uart::XmitInterruptHandler! Flow Off, Data Discard.\r\n")));
+            RETAILMSG(1, (TEXT("CPdd3250Uart::XmitInterruptHandler! Flow Off, Data Discard.\r\n")));
             EnableXmitInterrupt(FALSE);
         }
         else  {
@@ -406,7 +423,7 @@ void    CPdd3250Uart::XmitInterruptHandler(PUCHAR pTxBuffer, ULONG *pBuffLen)
             DEBUGMSG(ZONE_THREAD|ZONE_WRITE,(TEXT("CPdd3250Uart::XmitInterruptHandler! WriteableSize=%x to FIFO,dwDataAvaiable=%x\r\n"),
                     dwWriteSize,dwDataAvaiable));
             for (DWORD dwByteWrite=0; dwByteWrite<dwWriteSize && dwDataAvaiable!=0;dwByteWrite++) {
-                m_pReg3250Uart->Write_UTXH(*pTxBuffer);
+                m_pReg3250Uart->Write_DATA(*pTxBuffer);
                 pTxBuffer ++;
                 dwDataAvaiable--;
             }
@@ -414,10 +431,11 @@ void    CPdd3250Uart::XmitInterruptHandler(PUCHAR pTxBuffer, ULONG *pBuffLen)
             *pBuffLen = dwByteWrite;
             EnableXmitInterrupt(TRUE);        
         }
-        ClearInterrupt(S3250UART_INT_TXD);
+        //ClearInterrupt(S3250UART_INT_TXD);
 
-        if (m_pReg3250Uart->Read_ULCON() & (0x1<<6))
-            while( (m_pReg3250Uart->Read_UFSTAT() >> 0x8 ) & 0x3f );
+        //if (m_pReg3250Uart->Read_ULCON() & (0x1<<6))
+            //while( (m_pReg3250Uart->Read_UFSTAT() >> 0x8 ) & 0x3f );
+			wait_for_xmit_empty();
         Rx_Pause(FALSE);
     }
     m_HardwareLock.Unlock();
@@ -430,7 +448,7 @@ void    CPdd3250Uart::XmitComChar(UCHAR ComChar)
     do {
         m_HardwareLock.Lock(); 
         if ( GetWriteableSize()!=0 ) {  // If not full 
-            m_pReg3250Uart->Write_UTXH(ComChar);
+            m_pReg3250Uart->Write_DATA(ComChar);
             bDone = TRUE;
         }
         else {
@@ -446,9 +464,9 @@ BOOL    CPdd3250Uart::EnableXmitInterrupt(BOOL fEnable)
 {
     m_HardwareLock.Lock();
     if (fEnable)
-        EnableInterrupt(S3250UART_INT_TXD);
+        EnableInterrupt(LPC32XX_HSU_TX_INT_EN);
     else
-        DisableInterrupt(S3250UART_INT_TXD);
+        DisableInterrupt(LPC32XX_HSU_TX_INT_EN);
     m_HardwareLock.Unlock();
     return TRUE;
         
@@ -492,7 +510,7 @@ BOOL    CPdd3250Uart::InitReceive(BOOL bInit)
 {
     m_HardwareLock.Lock();    
     if (bInit) {         
-        BYTE uWarterMarkBit = GetWaterMarkBit();
+        /*BYTE uWarterMarkBit = GetWaterMarkBit();
         if (uWarterMarkBit> 3)
             uWarterMarkBit = 3;
         // Setup Receive FIFO.
@@ -518,11 +536,11 @@ BOOL    CPdd3250Uart::InitReceive(BOOL bInit)
 #endif
         dwBit &= ~(3<<0);
         dwBit |= (1<<0)|(1<<7)|(1<<8); // Enable Rx Timeout and Level Interrupt Trigger.
-        m_pReg3250Uart->Write_UCON(dwBit);
-        EnableInterrupt(S3250UART_INT_RXD | S3250UART_INT_ERR );
+        m_pReg3250Uart->Write_UCON(dwBit);*/
+        EnableInterrupt(LPC32XX_HSU_RX_INT_EN | LPC32XX_HSU_ERR_INT_EN);
     }
     else {
-        DisableInterrupt(S3250UART_INT_RXD | S3250UART_INT_ERR );
+        DisableInterrupt(LPC32XX_HSU_RX_INT_EN | LPC32XX_HSU_ERR_INT_EN);
     }
     m_HardwareLock.Unlock();
     return TRUE;
@@ -626,12 +644,10 @@ BOOL CPdd3250Uart::InitLine(BOOL bInit)
 {
     m_HardwareLock.Lock();
     if  (bInit) {
-        // Set 8Bit,1Stop,NoParity,Normal Mode.
-        //m_pReg3250Uart->Write_ULCON( (0x3<<0) | (0<<1) | (0<<3) | (0<<6) );
-        EnableInterrupt( S3250UART_INT_ERR );
+        EnableInterrupt(LPC32XX_HSU_ERR_INT_EN);
     }
     else {
-        DisableInterrupt(S3250UART_INT_ERR );
+        DisableInterrupt(LPC32XX_HSU_ERR_INT_EN);
     }
     m_HardwareLock.Unlock();
     return TRUE;

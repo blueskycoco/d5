@@ -302,7 +302,7 @@ public:
         Write_IIR(dwInt);
     }
     DWORD   GetInterruptStatus() { return (Read_IIR();};
-    DWORD   GetIntrruptMask () { return ((~(m_pINTregs->INTSUBMSK) )>> m_dwIntShift); };
+   // DWORD   GetIntrruptMask () { return ((~(m_pINTregs->INTSUBMSK) )>> m_dwIntShift); };
     
 protected:
     CRegistryEdit m_ActiveReg;
