@@ -113,10 +113,10 @@ BOOL OEMDebugInit()
 
 	// Enable UART system clock and automode */
 	clkpwr_clk_en_dis(CLKPWR_UART5_CLK, 1);
+
 	tmp = pUARTCntlRegs->clkmode & UART_CLKMODE_MASK(5);
 	pUARTCntlRegs->clkmode = (tmp |
 		UART_CLKMODE_LOAD(UART_CLKMODE_AUTO, (5)));
-
 	// UART baud rate generator isn't used, so just set it to divider
 	//  by 1
 	pUARTRegs->lcr |= UART_LCR_DIVLATCH_EN;

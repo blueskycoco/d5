@@ -334,7 +334,7 @@ void clkpwr_clk_en_dis(CLKPWR_CLK_T clk,
 	phBase.QuadPart = CLK_PM_BASE;
 	
 	pClkPwr = (CLKPWR_REGS_T *)MmMapIoSpace(phBase, sizeof(CLKPWR_REGS_T), FALSE);// OALPAtoVA((UINT32) CLKPWR, FALSE);
-
+	RETAILMSG(1,(TEXT("uart3 old clk %x\r\n"),pClkPwr->clkpwr_uart_clk_ctrl));
 	//pClkPwr = (CLKPWR_REGS_T *) OALPAtoVA((UINT32) CLKPWR, FALSE);
 
    switch (clk) {
@@ -517,4 +517,5 @@ void clkpwr_clk_en_dis(CLKPWR_CLK_T clk,
 		default:
 			break;
 	}
+   RETAILMSG(1,(TEXT("uart3 new clk %x\r\n"),pClkPwr->clkpwr_uart_clk_ctrl));
 }

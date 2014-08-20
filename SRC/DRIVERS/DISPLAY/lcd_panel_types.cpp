@@ -24,24 +24,24 @@
 //------------------------------------------------------------------------------
 
 LCD_PARAM_T LCDPanelList[LCD_MAX_PANELS] = {
-	{L"DH WXCAT43",
-     2,       /* Horizontal back porch */
-	 2,       /* Horizontal front porch */
-	 40,       /* HSYNC pulse width */
-	 480,      /* Pixels per line */
-	 2,      /* Vertical back porch */
-	 2,      /* Vertical front porch */
-	 10,        /* VSYNC pulse width */
-	 272,      /* Lines per panel */
-     0,        /* Do not invert output enable */
-     0,        /* Invert panel clock */
-     1,        /* Invert HSYNC */
-     1,        /* Do not invert VSYNC */
-     1,        /* AC bias frequency (not used) */
-     16,       /* Bits per pixel */
-     25000000,  /* Optimal clock rate (Hz) */
-     TFT,  	   /* LCD panel type */
-	 0,        /* Single panel display */
+	{L"QC AT080TN52",
+       45,       /* Horizontal back porch */
+	   209,      /* Horizontal front porch */
+	   20,       /* HSYNC pulse width */
+	   800,      /* Pixels per line */
+	   22,       /* Vertical back porch */
+	   11,       /* Vertical front porch */
+	   10,       /* VSYNC pulse width */
+	   600,      /* Lines per panel */
+       0,        /* Do not invert output enable */
+       0,        /* Invert panel clock */
+       1,        /* Invert HSYNC */
+       1,        /* Do not invert VSYNC */
+       1,        /* AC bias frequency (not used) */
+       16,       /* Bits per pixel */
+       50000000, /* Optimal clock rate (Hz) */
+       TFT,  	 /* LCD panel type */
+	   0,        /* Single panel display */
 	{0x0000F800, 0x000007E0, 0x0000001F}}
 };
 //------------------------------------------------------------------------------

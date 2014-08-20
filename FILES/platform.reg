@@ -105,13 +105,13 @@ IF BSP_LPC32XX_TOUCH
 ;LCD 070
      ;"CalibrationData"="515,523 102,140 102,913 926,901 922,117"
 ;LCD 080
-     ;"CalibrationData"="503,536 114,149 113,915 898,909 899,148"
+     "CalibrationData"="503,536 114,149 113,915 898,909 899,148"
 ;LCD 35
      ;"CalibrationData"="524,525 135,132 132,921 922,920 907,134"
 ;LQ  080
      ;"CalibrationData"="516,577 897,230 870,925 145,917 144,198"
 ;LCD 43
-     "CalibrationData"="521,513 112,151 113,894 918,898 922,135"
+     ;"CalibrationData"="521,513 112,151 113,894 918,898 922,135"
      
     "Samplerate"=dword:0 ; 0 for 50Hz, 1 for 100Hz
     "MaxCalError"="3"

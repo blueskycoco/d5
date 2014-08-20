@@ -749,10 +749,13 @@ Ser_GetRegistryData(PSER_INFO pHWHead, LPCTSTR regKeyPath)
 				phBase.QuadPart = UART_CTRL_BASE;
 				pUARTCntlRegs = (UART_CNTL_REGS_T *)MmMapIoSpace(phBase, sizeof(UART_CNTL_REGS_T), FALSE);//OALPAtoVA((UINT32) UARTCNTL,FALSE);
 				clkpwr_clk_en_dis(CLKPWR_UART3_CLK, 1);
-				RETAILMSG(1,(TEXT("Ser_GetRegistryData UART3 old clkmode %x, ctl %x\r\n"),pUARTCntlRegs->clkmode,pUARTCntlRegs->ctrl));
-				tmp = pUARTCntlRegs->clkmode & UART_CLKMODE_MASK(3);
-				pUARTCntlRegs->clkmode = (tmp |UART_CLKMODE_LOAD(UART_CLKMODE_AUTO, (3)));					
+				RETAILMSG(1,(TEXT("1Ser_GetRegistryData UART3 old clkmode %x, ctl %x\r\n"),pUARTCntlRegs->clkmode,pUARTCntlRegs->ctrl));
 				pUARTCntlRegs->ctrl |= UART_U3_MD_CTRL_EN;	//need test and check
+				tmp = pUARTCntlRegs->clkmode & UART_CLKMODE_MASK(3);
+				RETAILMSG(1,(TEXT("2Ser_GetRegistryData UART3 old clkmode %x, ctl %x\r\n"),pUARTCntlRegs->clkmode,pUARTCntlRegs->ctrl));
+				//pUARTCntlRegs->clkmode = (tmp |UART_CLKMODE_LOAD(UART_CLKMODE_AUTO, (3)));			
+				RETAILMSG(1,(TEXT("3Ser_GetRegistryData UART3 old clkmode %x, ctl %x\r\n"),pUARTCntlRegs->clkmode,pUARTCntlRegs->ctrl));
+				
 				RETAILMSG(1,(TEXT("Ser_GetRegistryData UART3 new clkmode %x, ctl %x\r\n"),pUARTCntlRegs->clkmode,pUARTCntlRegs->ctrl));
 				phBase.QuadPart = UART3_BASE;//0x29000000;
 				irq = IRQ_UART_IIR3;
@@ -766,7 +769,7 @@ Ser_GetRegistryData(PSER_INFO pHWHead, LPCTSTR regKeyPath)
 	}
 
 	// Map physical memory
-	pHWHead->pBaseAddress = (PUCHAR)MmMapIoSpace(phBase, 32, FALSE);
+	pHWHead->pBaseAddress = (PULONG)MmMapIoSpace(phBase, 32, FALSE);
 
 	if (pHWHead->pBaseAddress == NULL) {
 		DEBUGMSG(ZONE_ERROR, (L" SL_Init - Failed map physical memory 0x%x\n", phBase.LowPart));
