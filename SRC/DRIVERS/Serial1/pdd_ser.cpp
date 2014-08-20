@@ -286,13 +286,13 @@ DWORD CPdd3250Uart::ThreadRun()
             while ( !IsTerminated() ) {
                 DWORD dwData = ( GetInterruptStatus() & (LPC32XX_HSU_BRK_INT | LPC32XX_HSU_FE_INT | LPC32XX_HSU_RX_OE_INT|LPC32XX_HSU_RX_TIMEOUT_INT | LPC32XX_HSU_RX_TRIG_INT|LPC32XX_HSU_TX_INT) );
                 //DWORD dwMask = ( GetIntrruptMask() & (S3250UART_INT_RXD | S3250UART_INT_TXD | S3250UART_INT_ERR));
-                 DEBUGMSG(ZONE_THREAD,
+                 RETAILMSG(1,
                       (TEXT(" CPdd3250Uart::ThreadRun INT=%x\r\n"),dwData));
                 //dwMask &= dwData;
                 if (dwData) {
                     DEBUGMSG(ZONE_THREAD,
                       (TEXT(" CPdd3250Uart::ThreadRun Active INT=%x\r\n"),dwData));
-                    DWORD interrupts=INTR_MODEM; // Always check Modem when we have change. It may work at polling mode.
+                    DWORD interrupts=0;//INTR_MODEM; // Always check Modem when we have change. It may work at polling mode.
                     if ((dwData & (LPC32XX_HSU_RX_TIMEOUT_INT | LPC32XX_HSU_RX_TRIG_INT))!=0)
                         interrupts |= INTR_RX;
                     if ((dwData & LPC32XX_HSU_TX_INT)!=0)
@@ -384,13 +384,13 @@ BOOL  CPdd3250Uart::InitXmit(BOOL bInit)
         dwBit &= ~(1<<2);
         dwBit |= (1<<0);
         m_pReg3250Uart->Write_UFCON(dwBit); // Xmit Fifo Reset Done..*/
-	wait_for_xmit_ready();
+	//wait_for_xmit_ready();
 	EnableInterrupt(LPC32XX_HSU_TX_INT_EN);
         m_HardwareLock.Unlock();
     }
     else { // Make Sure data has been trasmit out.
         	// We have to make sure the xmit is complete because MDD will shut donw the device after this return
-        	wait_for_xmit_empty();
+        	//wait_for_xmit_empty();
 		DisableInterrupt(LPC32XX_HSU_TX_INT_EN);
     }
     return TRUE;
@@ -427,6 +427,7 @@ void    CPdd3250Uart::XmitInterruptHandler(PUCHAR pTxBuffer, ULONG *pBuffLen)
                     dwWriteSize,dwDataAvaiable));
             for (DWORD dwByteWrite=0; dwByteWrite<dwWriteSize && dwDataAvaiable!=0;dwByteWrite++) {
                 m_pReg3250Uart->Write_DATA(*pTxBuffer);
+				RETAILMSG(0,(TEXT("1==>%c\r\n"),*pTxBuffer));
                 pTxBuffer ++;
                 dwDataAvaiable--;
             }
@@ -452,6 +453,7 @@ void    CPdd3250Uart::XmitComChar(UCHAR ComChar)
         m_HardwareLock.Lock(); 
         if ( GetWriteableSize()!=0 ) {  // If not full 
             m_pReg3250Uart->Write_DATA(ComChar);
+			RETAILMSG(1,(TEXT("2==>%c\r\n"),ComChar));
             bDone = TRUE;
         }
         else {
@@ -552,6 +554,8 @@ ULONG   CPdd3250Uart::ReceiveInterruptHandler(PUCHAR pRxBuffer,ULONG *pBufflen)
 {
     DEBUGMSG(ZONE_THREAD|ZONE_READ,(TEXT("+CPdd3250Uart::ReceiveInterruptHandler pRxBuffer=%x,*pBufflen=%x\r\n"),
         pRxBuffer,pBufflen!=NULL?*pBufflen:0));
+	RETAILMSG(1,(TEXT("+CPdd3250Uart::ReceiveInterruptHandler pRxBuffer=%x,*pBufflen=%x\r\n"),
+        pRxBuffer,pBufflen!=NULL?*pBufflen:0));
     DWORD dwBytesDropped = 0;
 	unsigned int tmp;
     if (pRxBuffer && pBufflen ) {
@@ -560,6 +564,7 @@ ULONG   CPdd3250Uart::ReceiveInterruptHandler(PUCHAR pRxBuffer,ULONG *pBufflen)
         m_bReceivedCanceled = FALSE;
         m_HardwareLock.Lock();
         tmp = m_pReg3250Uart->Read_DATA();
+		RETAILMSG(1,(TEXT("read data %x\r\n"),tmp));
         while (dwRoomLeft && !m_bReceivedCanceled && !(tmp & LPC32XX_HSU_RX_EMPTY)) {
             /*ULONG ulUFSTATE = m_pReg3250Uart->Read_UFSTAT();
             DWORD dwNumRxInFifo = (ulUFSTATE & (0x3f<<0));

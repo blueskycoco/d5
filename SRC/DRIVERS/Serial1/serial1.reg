@@ -1,9 +1,9 @@
 ; @CESYSGEN IF COREDLL_SERDEV
 [HKEY_LOCAL_MACHINE\Drivers\BuiltIn\Serial]
    "DeviceArrayIndex"=dword:1
-   "Irq"=dword:1a
+   "Irq"=dword:31
    "MemBase"=dword:40014000
-   "MemLen"=dword:18 ;; 2c
+   "MemLen"=dword:32 ;; 2c
    "InterruptBitsShift"=dword:0 ; UART 0 Interrupt Sub Register shift bit.
    "ISTTimeouts"=dword:200	; every 512 ticks checking Modem status.
    "Prefix"="COM"

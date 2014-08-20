@@ -50,7 +50,7 @@ public:
 		    ddi.dwSysintr = 0;
 		    return FALSE;
 		}else
-			RETAILMSG(0, (TEXT("OK: UART1: request the UART1 sysintr. %x\r\n"),ddi.dwSysintr));	
+			RETAILMSG(1, (TEXT("OK: UART1: request the UART1 sysintr. %x\r\n"),ddi.dwSysintr));	
             RegSetValueEx(DEVLOAD_SYSINTR_VALNAME,REG_DWORD,(PBYTE)&ddi.dwSysintr, sizeof(UINT32));
             
             return CPdd3250Uart::Init();
