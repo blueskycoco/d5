@@ -35,7 +35,7 @@ extern "C" {
 // Offsets from the base register address of the
 // various registers for the 8250/16440 family of UARTS.
 //
-#if 0
+#if 1
 #define RECEIVE_BUFFER_REGISTER    		0x00
 #define TRANSMIT_HOLDING_REGISTER  	0x00
 #define INTERRUPT_ENABLE_REGISTER  	0x04

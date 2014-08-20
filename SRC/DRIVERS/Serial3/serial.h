@@ -58,25 +58,25 @@ typedef RcvDataBuffer;
 typedef struct __LS_SERIAL_INFO
 {
          // Store volatile pointers to each 16550 register 
-        volatile PULONG pData;           // @field RX data / Transmit Holding Reg
-        volatile PULONG pIER;            // @field Interrupt Enable
-        volatile PULONG pIIR_FCR;        // @field read IIR (Int ID) / Write FCR (FIFO Ctrl)
-        volatile PULONG pLCR;            // @field Line Control
-        volatile PULONG pMCR;            // @field Modem Control
-        volatile PULONG pLSR;            // @field Line Status
-        volatile PULONG pMSR;            // @field Modem Status
-        volatile PULONG pScratch;        // @field Scratch Register
+        volatile PUCHAR pData;           // @field RX data / Transmit Holding Reg
+        volatile PUCHAR pIER;            // @field Interrupt Enable
+        volatile PUCHAR pIIR_FCR;        // @field read IIR (Int ID) / Write FCR (FIFO Ctrl)
+        volatile PUCHAR pLCR;            // @field Line Control
+        volatile PUCHAR pMCR;            // @field Modem Control
+        volatile PUCHAR pLSR;            // @field Line Status
+        volatile PUCHAR pMSR;            // @field Modem Status
+        volatile PUCHAR pScratch;        // @field Scratch Register
 
          // And we keep shadows of many of the 16550 registers
-        ULONG		FCR;			// @field FIFO control state. 
-        ULONG		IIR;			// @field State of Interrupt Identification Register. 
-        ULONG		LSR;			// @field Line Status Register. 
-        ULONG		MSR;			// @field Modem Status Register. 
+        UCHAR		FCR;			// @field FIFO control state. 
+        UCHAR		IIR;			// @field State of Interrupt Identification Register. 
+        UCHAR		LSR;			// @field Line Status Register. 
+        UCHAR		MSR;			// @field Modem Status Register. 
          // We wouldn't normally shadow these, except for power on/off
-        ULONG		IER;			// @field Interrupt Enable Register. 
-        ULONG		LCR;			// @field Line Control Register. 
-        ULONG		MCR;			// @field Modem Control Register. 
-        ULONG		Scratch;		// @field Scratch Register.
+        UCHAR		IER;			// @field Interrupt Enable Register. 
+        UCHAR		LCR;			// @field Line Control Register. 
+        UCHAR		MCR;			// @field Modem Control Register. 
+        UCHAR		Scratch;		// @field Scratch Register.
         
          // We have an event callback into the MDD
         EVENT_FUNC EventCallback; // This callback exists in MDD
@@ -135,7 +135,7 @@ typedef struct __LS_SERIAL_INFO
         DWORD       dwSysIntr;       // @field System Interrupt number for this peripheral
         DWORD       dwDevIndex;     // @field Index of device
 
-        PULONG      pBaseAddress;   // @field Start of serial registers - mapped
+        PUCHAR      pBaseAddress;   // @field Start of serial registers - mapped
 
         UINT8       cOpenCount;     // @field Count of concurrent opens
         COMMPROP    CommProp;       // @field Pointer to CommProp structure.
@@ -169,7 +169,7 @@ BOOL SL_SetParity(PVOID pHead, ULONG Parity);
 
      VOID SL_Init2(
         PVOID   pHead, //  points to device head
-        PULONG  pRegBase, // Pointer to 16550 register base
+        PUCHAR  pRegBase, // Pointer to 16550 register base
         UINT8   RegStride, // Stride amongst the 16550 registers
         EVENT_FUNC EventCallback, // This callback exists in MDD
         PVOID   pMddHead

@@ -89,10 +89,10 @@ BOOL CReg3250Uart::Write_BaudRate(ULONG BaudRate)
 		sizeof (basepclk), (LPDWORD) &bytesret) == FALSE)
 	{
 		// Cannot get clock
-	  	RETAILMSG(1,(TEXT("ERROR: Write_BaudRate getting uart1 pclk.\r\n")));
-		return ;
+	  	RETAILMSG(0,(TEXT("ERROR: Write_BaudRate getting uart1 pclk.\r\n")));
+		return FALSE;
 	}
-    	RETAILMSG(1, (TEXT("Write_BaudRate basepclk-> %d\r\n"), basepclk));
+    	RETAILMSG(0, (TEXT("Write_BaudRate basepclk-> %d\r\n"), basepclk));
 
 	/* Find the closest divider to get the desired clock rate */
 	div = basepclk / BaudRate;

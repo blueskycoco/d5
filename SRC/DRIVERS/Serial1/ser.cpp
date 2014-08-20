@@ -46,11 +46,11 @@ public:
 			  &(ddi.dwSysintr), sizeof(ddi.dwSysintr),
 			  NULL))
 		{
-		    RETAILMSG(1, (TEXT("ERROR: UART1: Failed to request the UART1 sysintr.\r\n")));				
-		    ddi.dwSysintr = SYSINTR_UNDEFINED;
+		    RETAILMSG(0, (TEXT("ERROR: UART1: Failed to request the UART1 sysintr.\r\n")));				
+		    ddi.dwSysintr = 0;
 		    return FALSE;
 		}else
-			RETAILMSG(1, (TEXT("OK: UART1: request the UART1 sysintr. %x\r\n"),ddi.dwSysintr));	
+			RETAILMSG(0, (TEXT("OK: UART1: request the UART1 sysintr. %x\r\n"),ddi.dwSysintr));	
             RegSetValueEx(DEVLOAD_SYSINTR_VALNAME,REG_DWORD,(PBYTE)&ddi.dwSysintr, sizeof(UINT32));
             
             return CPdd3250Uart::Init();
