@@ -41,7 +41,16 @@ public:
     }
     virtual BOOL Init() {
             DDKISRINFO ddi;
-            ddi.dwSysintr=OAL_INTR_IRQ_UART1;
+		ULONG irq=OAL_INTR_IRQ_UART1;		
+		if (!KernelIoControl(IOCTL_HAL_REQUEST_SYSINTR, &irq, sizeof(irq),
+			  &(ddi.dwSysintr), sizeof(ddi.dwSysintr),
+			  NULL))
+		{
+		    RETAILMSG(1, (TEXT("ERROR: UART1: Failed to request the UART1 sysintr.\r\n")));				
+		    ddi.dwSysintr = SYSINTR_UNDEFINED;
+		    return FALSE;
+		}else
+			RETAILMSG(1, (TEXT("OK: UART1: request the UART1 sysintr. %x\r\n"),ddi.dwSysintr));	
             RegSetValueEx(DEVLOAD_SYSINTR_VALNAME,REG_DWORD,(PBYTE)&ddi.dwSysintr, sizeof(UINT32));
             
             return CPdd3250Uart::Init();

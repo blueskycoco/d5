@@ -96,6 +96,7 @@ the CS around all register accesses.
 #include "isr.h"
 #include "hw.h"
 #include "serial.h"
+#include "bsp.h"
 
 
 #ifndef _PREFAST_
@@ -370,6 +371,7 @@ VOID set_div(UINT32 baud)
 	CLKPWR_REGS_T *pClkpwr;
 	UINT32 basepclk, savedclkrate, diff, clkrate;
 	UINT32 idxx, idyy;	
+	DWORD bytesret;
 	typedef struct
 	{
 		UNS_32 divx;
@@ -381,7 +383,15 @@ VOID set_div(UINT32 baud)
 	pClkpwr = (CLKPWR_REGS_T *)MmMapIoSpace(phBase, sizeof(CLKPWR_REGS_T), FALSE);// OALPAtoVA((UINT32) CLKPWR, FALSE);
 
 	// Get base clock for UART
-	basepclk = (INT32)(clkpwr_get_base_clock_rate(CLKPWR_PERIPH_CLK) >> 4);
+	//basepclk = (INT32)(clkpwr_get_base_clock_rate(CLKPWR_PERIPH_CLK) >> 4);
+	
+	if (KernelIoControl(IOCTL_LPC32XX_GETPCLK, NULL, 0, &basepclk,
+		sizeof (basepclk), (LPDWORD) &bytesret) == FALSE)
+	{
+		// Cannot get clock
+	  	RETAILMSG(1,(TEXT("ERROR: set_div getting uart3 pclk.\r\n")));
+		return ;
+	}
 	RETAILMSG(1,(TEXT("pclk is %d\r\n"),basepclk));
 	// Find the best divider
 	div.divx = div.divy = 0;
@@ -734,21 +744,21 @@ Ser_GetRegistryData(PSER_INFO pHWHead, LPCTSTR regKeyPath)
 
 	switch(pHWHead->dwDevIndex)
 	{
-/*		case 1:
-			{        			
-				phBase.QuadPart = HS_UART1_BASE;//0x28000000;
-				irq = IRQ_UART_IIR1;
-				pHWHead->dwSysIntr = OAL_INTR_IRQ_UART1;
-				RETAILMSG(1,(TEXT("Ser_GetRegistryData UART1\r\n")));
-			}
-			break;*/
 		case 3:
 			{
 				volatile UINT32 tmp;
+				CLKENID_T clkinfo;
+				DWORD bytesret;
 				UART_CNTL_REGS_T *pUARTCntlRegs;	
 				phBase.QuadPart = UART_CTRL_BASE;
 				pUARTCntlRegs = (UART_CNTL_REGS_T *)MmMapIoSpace(phBase, sizeof(UART_CNTL_REGS_T), FALSE);//OALPAtoVA((UINT32) UARTCNTL,FALSE);
-				clkpwr_clk_en_dis(CLKPWR_UART3_CLK, 1);
+				//clkpwr_clk_en_dis(CLKPWR_UART3_CLK, 1);
+				clkinfo.clkid = CLKPWR_UART3_CLK;
+				clkinfo.enable = TRUE;
+				if (KernelIoControl(IOCTL_LPC32XX_ENSYSCLK, &clkinfo, sizeof (clkinfo),NULL, 0, &bytesret) == FALSE)
+				{
+					RETAILMSG(1, (TEXT("Ser_GetRegistryData: Error enabling uart3 clock\r\n")));
+				}
 				RETAILMSG(1,(TEXT("1Ser_GetRegistryData UART3 old clkmode %x, ctl %x\r\n"),pUARTCntlRegs->clkmode,pUARTCntlRegs->ctrl));
 				pUARTCntlRegs->ctrl |= UART_U3_MD_CTRL_EN;	//need test and check
 				tmp = pUARTCntlRegs->clkmode & UART_CLKMODE_MASK(3);
@@ -758,8 +768,17 @@ Ser_GetRegistryData(PSER_INFO pHWHead, LPCTSTR regKeyPath)
 				
 				RETAILMSG(1,(TEXT("Ser_GetRegistryData UART3 new clkmode %x, ctl %x\r\n"),pUARTCntlRegs->clkmode,pUARTCntlRegs->ctrl));
 				phBase.QuadPart = UART3_BASE;//0x29000000;
-				irq = IRQ_UART_IIR3;
-				pHWHead->dwSysIntr = OAL_INTR_IRQ_UART3;
+				irq = OAL_INTR_IRQ_UART3;
+				//pHWHead->dwSysIntr = OAL_INTR_IRQ_UART3;					
+				if (!KernelIoControl(IOCTL_HAL_REQUEST_SYSINTR, &irq, sizeof(irq),
+					  &pHWHead->dwSysIntr, sizeof(pHWHead->dwSysIntr),
+					  NULL))
+				{
+				    RETAILMSG(ZONE_ERROR, (TEXT("ERROR: UART3: Failed to request the UART3 sysintr.\r\n")));				
+				    pHWHead->dwSysIntr = SYSINTR_UNDEFINED;
+				    return FALSE;
+				}else
+					RETAILMSG(1, (TEXT("OK: UART3: request the UART3 sysintr. %x\r\n"),pHWHead->dwSysIntr));	
 				RETAILMSG(1,(TEXT("Ser_GetRegistryData UART3\r\n")));
 			}
 			break;

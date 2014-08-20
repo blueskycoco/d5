@@ -32,5 +32,4 @@ SOURCELIBS= \
 
 SOURCES= \
     ser.cpp \
-    pdd_ser.cpp \
-    bsp_clkpwr_support.cpp
+    pdd_ser.cpp

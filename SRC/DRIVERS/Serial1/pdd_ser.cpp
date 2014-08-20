@@ -79,10 +79,19 @@ BOOL CReg3250Uart::Write_BaudRate(ULONG BaudRate)
 	UINT32 basepclk;
 	UINT32 div, goodrate, hsu_rate, l_hsu_rate, comprate;
 	UINT32 rate_diff;
+	DWORD bytesret;
     	RETAILMSG(1, (TEXT("Write_BaudRate -> %d\r\n"), BaudRate));
 
 	// Get base clock for UART
-	basepclk = (INT32)(clkpwr_get_base_clock_rate(CLKPWR_PERIPH_CLK) >> 4);
+	//basepclk = (INT32)(clkpwr_get_base_clock_rate(CLKPWR_PERIPH_CLK) >> 4);
+	
+	if (KernelIoControl(IOCTL_LPC32XX_GETPCLK, NULL, 0, &basepclk,
+		sizeof (basepclk), (LPDWORD) &bytesret) == FALSE)
+	{
+		// Cannot get clock
+	  	RETAILMSG(1,(TEXT("ERROR: Write_BaudRate getting uart1 pclk.\r\n")));
+		return ;
+	}
     	RETAILMSG(1, (TEXT("Write_BaudRate basepclk-> %d\r\n"), basepclk));
 
 	/* Find the closest divider to get the desired clock rate */

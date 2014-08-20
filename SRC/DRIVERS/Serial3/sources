@@ -18,8 +18,7 @@ INCLUDES=\
     $(_TARGETPLATROOT)\inc;
 
 SOURCES=\
-	serial.c \
-	bsp_clkpwr_support.c
+	serial.c
 
 SOURCELIBS= \
     $(_COMMONOAKROOT)\lib\$(_CPUINDPATH)\com_mdd2.lib
