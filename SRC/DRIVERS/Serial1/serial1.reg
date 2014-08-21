@@ -10,7 +10,7 @@
    "Index"=dword:1
    "Dll"="serial1.dll"
    "Order"=dword:0
-   "Priority256"=dword:63
+   "Priority256"=dword:33
    "Port"="COM1:"
    "DeviceType"=dword:0
    "FriendlyName"="Serial Cable on COM1:"

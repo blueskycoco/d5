@@ -126,6 +126,7 @@ BOOL CReg3250Uart::Write_BaudRate(ULONG BaudRate)
 	}
 	if (hsu_rate > 0xFF)
 		hsu_rate = 0xFF;
+	RETAILMSG(1, (TEXT("Write_BaudRate ->rate %d\r\n"), goodrate));
 	Write_RCTL(goodrate);
 	return TRUE;
 }
