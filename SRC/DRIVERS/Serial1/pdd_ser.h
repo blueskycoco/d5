@@ -198,9 +198,9 @@ public:
     PULONG  GetRegisterVirtualAddr() { return m_pReg; };
     virtual void    Backup();
     virtual void    Restore();
-#ifdef DEBUG
+//#ifdef DEBUG
     virtual void    DumpRegister();
-#endif
+//#endif
 protected:
     volatile PULONG const  m_pReg;
     BOOL    m_fIsBackedUp;

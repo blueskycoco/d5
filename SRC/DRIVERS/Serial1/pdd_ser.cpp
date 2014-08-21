@@ -450,7 +450,7 @@ void    CPdd3250Uart::XmitInterruptHandler(PUCHAR pTxBuffer, ULONG *pBuffLen)
 
 		//if (m_pReg3250Uart->Read_ULCON() & (0x1<<6))
 		//while( (m_pReg3250Uart->Read_UFSTAT() >> 0x8 ) & 0x3f );
-		//	wait_for_xmit_empty();
+		//wait_for_xmit_empty();
 		Rx_Pause(FALSE);
 	}
 	m_HardwareLock.Unlock();
