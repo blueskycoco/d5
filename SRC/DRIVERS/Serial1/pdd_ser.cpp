@@ -300,6 +300,7 @@ DWORD CPdd3250Uart::ThreadRun()
                     if ((dwData & (LPC32XX_HSU_BRK_INT | LPC32XX_HSU_FE_INT | LPC32XX_HSU_RX_OE_INT))!=0) 
                         interrupts |= INTR_LINE | INTR_RX;
                     NotifyPDDInterrupt( (INTERRUPT_TYPE)interrupts );
+					if((dwData & LPC32XX_HSU_TX_INT)!=0)
                     ClearInterrupt(dwData);
                 }
                 else 
@@ -439,7 +440,7 @@ void    CPdd3250Uart::XmitInterruptHandler(PUCHAR pTxBuffer, ULONG *pBuffLen)
 
         //if (m_pReg3250Uart->Read_ULCON() & (0x1<<6))
             //while( (m_pReg3250Uart->Read_UFSTAT() >> 0x8 ) & 0x3f );
-			wait_for_xmit_empty();
+		//	wait_for_xmit_empty();
         Rx_Pause(FALSE);
     }
     m_HardwareLock.Unlock();
@@ -599,19 +600,19 @@ ULONG   CPdd3250Uart::ReceiveInterruptHandler(PUCHAR pRxBuffer,ULONG *pBufflen)
 				/* Framing error */
 				//__raw_writel(LPC32XX_HSU_FE_INT,
 				//LPC32XX_HSUART_IIR(port->membase));
-				m_pReg3250Uart->Write_IIR(LPC32XX_HSU_FE_INT);
+				m_pReg3250Uart->Write_IIR(/*LPC32XX_HSU_FE_INT|*/LPC32XX_HSU_RX_TRIG_INT);
 				//port->icount.frame++;
 				//flag = TTY_FRAME;
 				//tty_insert_flip_char(port->state->port.tty, 0,
 				//TTY_FRAME);
 				//tty_schedule_flip(port->state->port.tty);
-			}else{
+			}
 
 			//tty_insert_flip_char(port->state->port.tty, (tmp & 0xFF),flag);
 			*pRxBuffer++ = tmp & 0xFF;
-                       dwRoomLeft--;
-			  dwBytesStored++;       
-					}
+             dwRoomLeft--;
+			 dwBytesStored++;       
+					
 			tmp = m_pReg3250Uart->Read_DATA();
 	//	}
         }
@@ -625,6 +626,8 @@ ULONG   CPdd3250Uart::ReceiveInterruptHandler(PUCHAR pRxBuffer,ULONG *pBufflen)
         ASSERT(FALSE);
     }
     DEBUGMSG(ZONE_THREAD|ZONE_READ,(TEXT("-CPdd3250Uart::ReceiveInterruptHandler pRxBuffer=%x,*pBufflen=%x,dwBytesDropped=%x\r\n"),
+        pRxBuffer,pBufflen!=NULL?*pBufflen:0,dwBytesDropped));
+	RETAILMSG(1,(TEXT("-CPdd3250Uart::ReceiveInterruptHandler pRxBuffer=%x,*pBufflen=%x,dwBytesDropped=%x\r\n"),
         pRxBuffer,pBufflen!=NULL?*pBufflen:0,dwBytesDropped));
     return dwBytesDropped;
 }
@@ -679,6 +682,7 @@ BYTE CPdd3250Uart::GetLineStatus()
     if (ulData & LPC32XX_HSU_BRK_INT) {
          EventCallback(EV_BREAK);
     }
+	ClearInterrupt(ulData);
     return (UINT8)ulData;
         
 }

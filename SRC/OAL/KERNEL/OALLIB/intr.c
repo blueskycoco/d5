@@ -187,7 +187,8 @@ BOOL OALIntrInit()
 		lp32xxToBSPIRQ [lp32xx_ierqsupp [idx].lpc32xx_irq_num] =
 			lp32xx_ierqsupp [idx].oal_intr_irq_num;
 	}
-
+	lp32xxToBSPIRQ [lp32xx_ierqsupp [49].lpc32xx_irq_num] =
+			lp32xx_ierqsupp [49].oal_intr_irq_num;
     // Setup static interrupt mappings
     OALIntrStaticTranslate(SYSINTR_RESCHED, OAL_INTR_IRQ_TICK);
 	lp32xxToBSPIRQ[IRQ_TIMER3] = OAL_INTR_IRQ_TICK;
