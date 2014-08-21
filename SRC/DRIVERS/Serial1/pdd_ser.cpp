@@ -57,7 +57,7 @@ void CReg3250Uart::DumpRegister()
 
 CReg3250Uart::CReg3250Uart(PULONG pRegAddr):m_pReg(pRegAddr)
 {
-	RETAILMSG(1,(TEXT("CReg3250Uart\r\n")));
+	RETAILMSG(1,(TEXT("CReg3250Uart %x\r\n"),pRegAddr));
 	m_fIsBackedUp = FALSE;
 }
 BOOL   CReg3250Uart::Init() 
@@ -330,7 +330,7 @@ DWORD CPdd3250Uart::ThreadRun()
 }
 BOOL CPdd3250Uart::InitialEnableInterrupt(BOOL bEnable )
 {
-	RETAILMSG(1,(TEXT("InitialEnableInterrupt\r\n")));
+	RETAILMSG(1,(TEXT("InitialEnableInterrupt %d\r\n"),bEnable));
 	m_HardwareLock.Lock();
 	if (bEnable) 
 		EnableInterrupt(LPC32XX_HSU_RX_INT_EN | LPC32XX_HSU_ERR_INT_EN);
@@ -366,42 +366,15 @@ void CPdd3250Uart::wait_for_xmit_ready()
 }
 BOOL  CPdd3250Uart::InitXmit(BOOL bInit)
 {
-	RETAILMSG(1,(TEXT("InitXmit\r\n")));
+	RETAILMSG(1,(TEXT("InitXmit %d\r\n"),bInit));
 	if (bInit) { 
 		m_HardwareLock.Lock();    
-		/*    DWORD dwBit = m_pReg3250Uart->Read_UCON();
-#if EPLL_CLK
-		// Set UART CLK.
-		dwBit &= ~(3 << 10);
-		dwBit |= (3 << 10);
-#endif
-		// Set TxINterrupt To Level.
-		dwBit |= (1<<9);
-		// Set Interrupt Tx Mode.
-		dwBit &= ~(3<<2);
-		dwBit |= (1<<2);
-		m_pReg3250Uart->Write_UCON(dwBit );
-
-		dwBit = m_pReg3250Uart->Read_UFCON();
-		// Reset Xmit Fifo.
-		dwBit |= (1<<2);
-		dwBit &= ~(1<<0);
-		m_pReg3250Uart->Write_UFCON( dwBit);
-		// Set Trigger level to 16. 
-		dwBit &= ~(3<<6);//empty
-		dwBit |= (1<<6);//16
-		m_pReg3250Uart->Write_UFCON(dwBit); 
-		// Enable Xmit FIFO.
-		dwBit &= ~(1<<2);
-		dwBit |= (1<<0);
-		m_pReg3250Uart->Write_UFCON(dwBit); // Xmit Fifo Reset Done..*/
-		//wait_for_xmit_ready();
 		EnableInterrupt(LPC32XX_HSU_TX_INT_EN);
 		m_HardwareLock.Unlock();
 	}
 	else { // Make Sure data has been trasmit out.
 		// We have to make sure the xmit is complete because MDD will shut donw the device after this return
-		//wait_for_xmit_empty();
+		wait_for_xmit_empty();
 		DisableInterrupt(LPC32XX_HSU_TX_INT_EN);
 	}
 	return TRUE;
@@ -461,7 +434,7 @@ void    CPdd3250Uart::XmitComChar(UCHAR ComChar)
 {
 	// This function has to poll until the Data can be sent out.
 	BOOL bDone = FALSE;
-	RETAILMSG(1,(TEXT("XmitComChar\r\n")));
+	RETAILMSG(1,(TEXT("XmitComChar %c\r\n"),ComChar));
 	do {
 		m_HardwareLock.Lock(); 
 		if ( GetWriteableSize()!=0 ) {  // If not full 
@@ -480,7 +453,7 @@ void    CPdd3250Uart::XmitComChar(UCHAR ComChar)
 }
 BOOL    CPdd3250Uart::EnableXmitInterrupt(BOOL fEnable)
 {
-	RETAILMSG(1,(TEXT("EnableXmitInterrupt\r\n")));
+	RETAILMSG(1,(TEXT("EnableXmitInterrupt %d\r\n"),fEnable));
 	m_HardwareLock.Lock();
 	if (fEnable)
 		EnableInterrupt(LPC32XX_HSU_TX_INT_EN);
@@ -525,33 +498,6 @@ BOOL    CPdd3250Uart::InitReceive(BOOL bInit)
 	RETAILMSG(1,(TEXT("InitReceive\r\n")));
 	m_HardwareLock.Lock();    
 	if (bInit) {         
-		/*BYTE uWarterMarkBit = GetWaterMarkBit();
-		  if (uWarterMarkBit> 3)
-		  uWarterMarkBit = 3;
-		// Setup Receive FIFO.
-		// Reset Receive Fifo.
-		DWORD dwBit = m_pReg3250Uart->Read_UFCON();
-		dwBit |= (1<<1);
-		dwBit &= ~(1<<0);
-		m_pReg3250Uart->Write_UFCON( dwBit);
-		// Set Trigger level to WaterMark.
-		dwBit &= ~(3<<4);
-		dwBit |= (uWarterMarkBit<<4);
-		m_pReg3250Uart->Write_UFCON(dwBit); 
-		// Enable Receive FIFO.
-		dwBit &= ~(1<<1);
-		dwBit |= (1<<0);
-		m_pReg3250Uart->Write_UFCON(dwBit); // Xmit Fifo Reset Done..
-		m_pReg3250Uart->Read_UERSTAT(); // Clean Line Interrupt.
-		dwBit = m_pReg3250Uart->Read_UCON();
-#if EPLL_CLK
-		// Set UART CLK.
-		dwBit &= ~(3 << 10);
-		dwBit |= (3 << 10);
-#endif
-dwBit &= ~(3<<0);
-dwBit |= (1<<0)|(1<<7)|(1<<8); // Enable Rx Timeout and Level Interrupt Trigger.
-m_pReg3250Uart->Write_UCON(dwBit);*/
 		EnableInterrupt(LPC32XX_HSU_RX_INT_EN | LPC32XX_HSU_ERR_INT_EN);
 	}
 	else {
@@ -651,7 +597,7 @@ ULONG   CPdd3250Uart::CancelReceive()
 }
 BOOL    CPdd3250Uart::InitModem(BOOL bInit)
 {
-	RETAILMSG(1,(TEXT("InitModem\r\n")));
+	RETAILMSG(1,(TEXT("InitModem %d\r\n"),bInit));
 	return TRUE;
 }
 
@@ -663,11 +609,11 @@ ULONG   CPdd3250Uart::GetModemStatus()
 }
 void    CPdd3250Uart::SetRTS(BOOL bSet)
 {
-	RETAILMSG(1,(TEXT("SetRTS\r\n")));
+	RETAILMSG(1,(TEXT("SetRTS %d\r\n"),bSet));
 }
 BOOL CPdd3250Uart::InitLine(BOOL bInit)
 {
-	RETAILMSG(1,(TEXT("InitLine\r\n")));
+	RETAILMSG(1,(TEXT("InitLine %d\r\n"),bInit));
 	m_HardwareLock.Lock();
 	if  (bInit) {
 		EnableInterrupt(LPC32XX_HSU_ERR_INT_EN);
@@ -680,7 +626,7 @@ BOOL CPdd3250Uart::InitLine(BOOL bInit)
 }
 BYTE CPdd3250Uart::GetLineStatus()
 {
-	RETAILMSG(1,(TEXT("GetLineStatus\r\n")));
+	
 	m_HardwareLock.Lock();
 	ULONG ulData = m_pReg3250Uart->Read_IIR();
 	m_HardwareLock.Unlock();  
@@ -698,12 +644,13 @@ BYTE CPdd3250Uart::GetLineStatus()
 		EventCallback(EV_BREAK);
 	}
 	ClearInterrupt(ulData);
+	RETAILMSG(1,(TEXT("GetLineStatus %d\r\n"),ulData));
 	return (UINT8)ulData;
 
 }
 void    CPdd3250Uart::SetBreak(BOOL bSet)
 {
-	RETAILMSG(1,(TEXT("SetBreak\r\n")));
+	RETAILMSG(1,(TEXT("SetBreak %d\r\n"),bSet));
 	m_HardwareLock.Lock();   
 	if (bSet)
 		m_pReg3250Uart->Write_CTL(m_pReg3250Uart->Read_CTL()|LPC32XX_HSU_BREAK);
@@ -722,19 +669,19 @@ BOOL    CPdd3250Uart::SetBaudRate(ULONG BaudRate,BOOL /*bIrModule*/)
 BOOL    CPdd3250Uart::SetByteSize(ULONG ByteSize)
 {
 	BOOL bRet = TRUE;
-	RETAILMSG(1,(TEXT("SetByteSize\r\n")));
+	RETAILMSG(1,(TEXT("SetByteSize %d\r\n"),ByteSize));
 	return bRet;
 }
 BOOL    CPdd3250Uart::SetParity(ULONG Parity)
 {
 	BOOL bRet = TRUE;
-	RETAILMSG(1,(TEXT("SetParity\r\n")));
+	RETAILMSG(1,(TEXT("SetParity %d\r\n"),Parity));
 	return bRet;
 }
 BOOL    CPdd3250Uart::SetStopBits(ULONG StopBits)
 {
 	BOOL bRet = TRUE;
-	RETAILMSG(1,(TEXT("SetStopBits\r\n")));
+	RETAILMSG(1,(TEXT("SetStopBits %d\r\n"),StopBits));
 	return bRet;
 }
 void    CPdd3250Uart::SetOutputMode(BOOL UseIR, BOOL Use9Pin)
