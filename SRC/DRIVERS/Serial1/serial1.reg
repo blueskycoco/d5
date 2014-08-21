@@ -4,18 +4,18 @@
    "Irq"=dword:31
    "MemBase"=dword:40014000
    "MemLen"=dword:32 ;; 2c
-   "InterruptBitsShift"=dword:0 ; UART 0 Interrupt Sub Register shift bit.
-   "ISTTimeouts"=dword:200	; every 512 ticks checking Modem status.
+;   "InterruptBitsShift"=dword:0 ; UART 0 Interrupt Sub Register shift bit.
+;   "ISTTimeouts"=dword:200	; every 512 ticks checking Modem status.
    "Prefix"="COM"
    "Index"=dword:1
    "Dll"="serial1.dll"
    "Order"=dword:0
-   "Priority256"=dword:33
+   "Priority256"=dword:10
    "Port"="COM1:"
-   "DeviceType"=dword:0
+;   "DeviceType"=dword:0
    "FriendlyName"="Serial Cable on COM1:"
-   "Tsp"="unimodem.dll"
-   "IClass"="{CC5195AC-BA49-48a0-BE17-DF6D1B0173DD}"
-   "DevConfig"=hex: 10,00, 00,00, 05,00,00,00, 10,01,00,00, 00,4B,00,00, 00,00, 08, 00, 00, 00,00,00,00
+;   "Tsp"="unimodem.dll"
+;   "IClass"="{CC5195AC-BA49-48a0-BE17-DF6D1B0173DD}"
+;   "DevConfig"=hex: 10,00, 00,00, 05,00,00,00, 10,01,00,00, 00,4B,00,00, 00,00, 08, 00, 00, 00,00,00,00
 ; @CESYSGEN ENDIF COREDLL_SERDEV
 ;-------------------------------------------------------------------------------
